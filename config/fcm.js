@@ -29,6 +29,7 @@ try {
     process.exit(1);
 }
 
+
 /**
  * Envoi d'une notification push à un ou plusieurs appareils
  * @param {string|string[]} deviceTokens - Token(s) FCM du ou des appareils
