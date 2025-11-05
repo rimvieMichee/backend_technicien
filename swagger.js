@@ -27,6 +27,7 @@ const options = {
   apis: ['./auth/route/*.js', './mission/route/*.js', './notification/route/*.js', './schemas/*.js'], // <-- Cible tous les fichiers .js dans routes et sous-dossiers
 };
 
+
 const swaggerSpec = swaggerJSDoc(options);
 
 export default (app) => {
