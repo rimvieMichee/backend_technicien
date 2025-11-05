@@ -13,7 +13,7 @@ try {
     serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
 } catch (err) {
-    console.error("❌ Impossible de parser FIREBASE_SERVICE_ACCOUNT :", err.message);
+    console.error("Impossible de parser FIREBASE_SERVICE_ACCOUNT :", err.message);
     process.exit(1);
 }
 
@@ -23,9 +23,9 @@ try {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
     });
-    console.log("✅ Firebase Admin initialisé avec succès !");
+    console.log("Firebase Admin initialisé avec succès !");
 } catch (error) {
-    console.error("❌ Erreur lors de l'initialisation de Firebase Admin :", error);
+    console.error("Erreur lors de l'initialisation de Firebase Admin :", error);
     process.exit(1);
 }
 
@@ -53,13 +53,13 @@ export const sendPushNotification = async (deviceTokens, title, body, data = {})
 
         if (response.failureCount > 0) {
             response.responses.forEach((resp, idx) => {
-                if (!resp.success) console.error(`❌ Échec notification pour token ${message.tokens[idx]}:`, resp.error);
+                if (!resp.success) console.error(`Échec notification pour token ${message.tokens[idx]}:`, resp.error);
             });
         }
 
         return { successCount: response.successCount, failureCount: response.failureCount };
     } catch (err) {
-        console.error("🚨 Erreur lors de l'envoi de notification:", err);
+        console.error("Erreur lors de l'envoi de notification:", err);
         return { successCount: 0, failureCount: message.tokens.length };
     }
 };

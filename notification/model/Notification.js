@@ -21,7 +21,7 @@ const notificationSchema = new mongoose.Schema(
             default: "Mission",
         },
         relatedId: {
-            type: mongoose.Schema.Types.ObjectId, // ex: ID de mission
+            type: mongoose.Schema.Types.ObjectId,
             refPath: "type",
         },
         isRead: {

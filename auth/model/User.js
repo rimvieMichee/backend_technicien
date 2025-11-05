@@ -41,7 +41,7 @@ const userSchema = mongoose.Schema(
         required: true,
     },
     deviceTokens: {
-        type: [String], // liste de tokens
+        type: [String],
         default: [],
     },
 
