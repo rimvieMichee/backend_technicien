@@ -23,8 +23,8 @@
  *           example: Panne du serveur principal
  *         type_intervention:
  *           type: string
- *           description: Type d'intervention
  *           enum: [Curatif, Préventif]
+ *           description: Type d'intervention
  *           example: Curatif
  *         type_equipement:
  *           type: string
@@ -36,13 +36,13 @@
  *           example: EQP-2045
  *         niveau_risque:
  *           type: string
- *           description: Niveau de risque lié à la mission
  *           enum: [faible, moyen, élevé, critique]
+ *           description: Niveau de risque lié à la mission
  *           example: élevé
  *         niveau_priorite:
  *           type: string
- *           description: Niveau de priorité de la mission
  *           enum: [Normal, Urgent, Critique]
+ *           description: Niveau de priorité de la mission
  *           example: Urgent
  *         site_intervention:
  *           type: string
@@ -63,25 +63,15 @@
  *         descriptif:
  *           type: string
  *           description: Description détaillée de la mission
- *           example: "Le serveur principal est à l'arrêt depuis 8h du matin."
+ *           example: "Le serveur principal est à l'arrêt depuis 8h, coupure du réseau interne."
  *         materiel_remplacement_requis:
  *           type: boolean
  *           description: Indique si un remplacement de matériel est requis
  *           example: true
- *         date_creation:
- *           type: string
- *           format: date-time
- *           description: Date de création de la mission
- *           example: "2025-11-05T10:15:30Z"
- *         date_echeance:
- *           type: string
- *           format: date-time
- *           description: Date limite prévue pour la mission
- *           example: "2025-11-06T17:00:00Z"
  *         statut_mission:
  *           type: string
- *           description: Statut actuel de la mission
  *           enum: [Disponible, Attribuée, En route, Arrivé sur site, En cours, En attente de pièces, Terminée]
+ *           description: Statut actuel de la mission
  *           example: Disponible
  *         technicien_attribue:
  *           type: string
@@ -89,7 +79,7 @@
  *           example: 64bfa2b5f2e4e2a1c1a5c6d2
  *         sla_capture:
  *           type: object
- *           description: Timestamps pour le suivi SLA de la mission
+ *           description: Dates de suivi SLA de la mission
  *           properties:
  *             creation_date:
  *               type: string
@@ -102,15 +92,15 @@
  *             en_route_date:
  *               type: string
  *               format: date-time
- *               example: "2025-11-05T11:30:00Z"
+ *               example: "2025-11-05T12:00:00Z"
  *             arrivee_site_date:
  *               type: string
  *               format: date-time
- *               example: "2025-11-05T12:00:00Z"
+ *               example: "2025-11-05T12:30:00Z"
  *             en_cours_date:
  *               type: string
  *               format: date-time
- *               example: "2025-11-05T12:15:00Z"
+ *               example: "2025-11-05T13:00:00Z"
  *             terminee_date:
  *               type: string
  *               format: date-time
@@ -121,43 +111,23 @@
  *               example: "2025-11-05T15:00:00Z"
  *         rapport_intervention:
  *           type: object
- *           description: Rapport d'intervention du technicien
  *           properties:
  *             titre:
  *               type: string
  *               example: "Remplacement disque dur"
  *             description:
  *               type: string
- *               example: "Le disque dur défectueux a été remplacé."
+ *               example: "Le disque dur principal était défectueux."
  *             materiel_utilise:
  *               type: array
  *               items:
  *                 type: string
- *               example: ["Disque dur 1TB", "Visserie"]
+ *                 example: ["Disque dur 1TB", "Câble SATA"]
  *             resolution:
  *               type: string
- *               example: "Résolu"
- *         photos:
- *           type: array
- *           description: Liste des URLs des photos prises durant l’intervention
- *           items:
- *             type: string
- *             example: https://cloudinary.com/image123.jpg
- *         signature_client:
+ *               example: "Réinstallation complète et test réussi."
+ *         createdBy:
  *           type: string
- *           description: Lien vers l’image de la signature du client
- *           example: https://cloudinary.com/signature123.png
- *         commentaire_technicien:
- *           type: string
- *           description: Commentaire ou rapport du technicien
- *           example: "Remplacement du disque dur et redémarrage réussi."
- *         resolution_statut:
- *           type: string
- *           description: Statut de résolution de la mission
- *           enum: [Résolu, Non résolu, En attente de pièces]
- *           example: Résolu
- *         synchronise:
- *           type: boolean
- *           description: Statut de synchronisation (mode hors-ligne)
- *           example: true
+ *           description: ID de l'utilisateur ayant créé la mission
+ *           example: 64bfa2b5f2e4e2a1c1a5c6d2
  */

@@ -12,13 +12,14 @@ import authMiddleware from "../../midllewares/authMiddleware.js";
 import authorizeRoles from "../../midllewares/roleMidleware.js";
 
 const router = express.Router();
+
 // ------------------- MANAGER ROUTES -------------------
 
 /**
  * @swagger
  * /api/missions:
  *   post:
- *     summary: Créer une nouvelle mission (Manager uniquement)
+ *     summary: "Créer une nouvelle mission (Manager uniquement)"
  *     tags:
  *       - Missions
  *     security:
@@ -38,17 +39,17 @@ const router = express.Router();
  *             properties:
  *               client:
  *                 type: string
- *                 example: Société AlphaTech
+ *                 example: "Société AlphaTech"
  *               titre_mission:
  *                 type: string
- *                 example: Panne du serveur principal
+ *                 example: "Panne du serveur principal"
  *               type_intervention:
  *                 type: string
  *                 enum: [Curatif, Préventif]
  *                 example: Curatif
  *               type_equipement:
  *                 type: string
- *                 example: Serveur HP ProLiant
+ *                 example: "Serveur HP ProLiant"
  *               id_equipement:
  *                 type: string
  *                 example: M-101A
@@ -62,32 +63,31 @@ const router = express.Router();
  *                 example: Urgent
  *               site_intervention:
  *                 type: string
- *                 example: Paris 2ème
+ *                 example: "Paris 2ème"
  *               adresse:
  *                 type: string
- *                 example: 12, Rue de la Paix, 75002 Paris
+ *                 example: "12, Rue de la Paix, 75002 Paris"
  *               descriptif:
  *                 type: string
- *                 example: Panne complète du serveur principal
+ *                 example: "Panne complète du serveur principal"
  *               materiel_remplacement_requis:
  *                 type: boolean
  *                 example: true
  *     responses:
  *       201:
- *         description: Mission créée avec succès
+ *         description: "Mission créée avec succès"
  *       403:
- *         description: Accès interdit : rôle non autorisé
+ *         description: "Accès interdit : rôle non autorisé"
  *       500:
- *         description: Erreur serveur
+ *         description: "Erreur serveur"
  */
 router.post("/", authMiddleware(), authorizeRoles("manager"), createMission);
-
 
 /**
  * @swagger
  * /api/missions/{id}:
  *   put:
- *     summary: Mettre à jour une mission (Manager uniquement)
+ *     summary: "Mettre à jour une mission (Manager uniquement)"
  *     tags:
  *       - Missions
  *     security:
@@ -98,7 +98,7 @@ router.post("/", authMiddleware(), authorizeRoles("manager"), createMission);
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de la mission
+ *         description: "ID de la mission"
  *     requestBody:
  *       required: true
  *       content:
@@ -107,11 +107,11 @@ router.post("/", authMiddleware(), authorizeRoles("manager"), createMission);
  *             $ref: '#/components/schemas/Mission'
  *     responses:
  *       200:
- *         description: Mission mise à jour
+ *         description: "Mission mise à jour"
  *       403:
- *         description: Accès interdit : rôle non autorisé
+ *         description: "Accès interdit : rôle non autorisé"
  *       500:
- *         description: Erreur serveur
+ *         description: "Erreur serveur"
  */
 router.put("/:id", authMiddleware(), authorizeRoles("manager"), updateMission);
 
@@ -119,7 +119,7 @@ router.put("/:id", authMiddleware(), authorizeRoles("manager"), updateMission);
  * @swagger
  * /api/missions/{id}:
  *   delete:
- *     summary: Supprimer une mission (Manager uniquement)
+ *     summary: "Supprimer une mission (Manager uniquement)"
  *     tags:
  *       - Missions
  *     security:
@@ -130,23 +130,24 @@ router.put("/:id", authMiddleware(), authorizeRoles("manager"), updateMission);
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de la mission
+ *         description: "ID de la mission"
  *     responses:
  *       200:
- *         description: Mission supprimée
+ *         description: "Mission supprimée"
  *       403:
- *         description: Accès interdit : rôle non autorisé
+ *         description: "Accès interdit : rôle non autorisé"
  *       500:
- *         description: Erreur serveur
+ *         description: "Erreur serveur"
  */
 router.delete("/:id", authMiddleware(), authorizeRoles("manager"), deleteMission);
 
-// ------------------- ALL AUTHENFICATED ROUTES -------------------
+// ------------------- ALL AUTHENTICATED ROUTES -------------------
+
 /**
  * @swagger
  * /api/missions:
  *   get:
- *     summary: Obtenir la liste de toutes les missions (tous les utilisateurs authentifiés)
+ *     summary: "Obtenir la liste de toutes les missions (tous les utilisateurs authentifiés)"
  *     tags:
  *       - Missions
  *     security:
@@ -157,35 +158,35 @@ router.delete("/:id", authMiddleware(), authorizeRoles("manager"), deleteMission
  *         schema:
  *           type: string
  *           enum: [Curatif, Préventif]
- *         description: Filtrer par type d'intervention
+ *         description: "Filtrer par type d'intervention"
  *       - in: query
  *         name: niveau_risque
  *         schema:
  *           type: string
  *           enum: [faible, moyen, élevé, critique]
- *         description: Filtrer par niveau de risque
+ *         description: "Filtrer par niveau de risque"
  *       - in: query
  *         name: niveau_priorite
  *         schema:
  *           type: string
  *           enum: [Normal, Urgent, Critique]
- *         description: Filtrer par niveau de priorité
+ *         description: "Filtrer par niveau de priorité"
  *       - in: query
  *         name: statut_mission
  *         schema:
  *           type: string
  *           enum: [Disponible, En cours, En attente de pièces, Terminée]
- *         description: Filtrer par statut
+ *         description: "Filtrer par statut"
  *       - in: query
  *         name: client
  *         schema:
  *           type: string
- *         description: Rechercher par nom du client
+ *         description: "Rechercher par nom du client"
  *     responses:
  *       200:
- *         description: Liste des missions retournée avec succès
+ *         description: "Liste des missions retournée avec succès"
  *       500:
- *         description: Erreur serveur
+ *         description: "Erreur serveur"
  */
 router.get("/", authMiddleware(), getAllMissions);
 
@@ -193,7 +194,7 @@ router.get("/", authMiddleware(), getAllMissions);
  * @swagger
  * /api/missions/{id}:
  *   get:
- *     summary: Obtenir une mission spécifique par son ID (tous les utilisateurs authentifiés)
+ *     summary: "Obtenir une mission spécifique par son ID (tous les utilisateurs authentifiés)"
  *     tags:
  *       - Missions
  *     security:
@@ -204,14 +205,14 @@ router.get("/", authMiddleware(), getAllMissions);
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de la mission
+ *         description: "ID de la mission"
  *     responses:
  *       200:
- *         description: Détails de la mission
+ *         description: "Détails de la mission"
  *       404:
- *         description: Mission non trouvée
+ *         description: "Mission non trouvée"
  *       500:
- *         description: Erreur serveur
+ *         description: "Erreur serveur"
  */
 router.get("/:id", authMiddleware(), getMissionById);
 
@@ -221,7 +222,7 @@ router.get("/:id", authMiddleware(), getMissionById);
  * @swagger
  * /api/missions/{id}/assign:
  *   post:
- *     summary: S'attribuer une mission (Technicien uniquement)
+ *     summary: "S'attribuer une mission (Technicien uniquement)"
  *     tags:
  *       - Missions
  *     security:
@@ -232,16 +233,16 @@ router.get("/:id", authMiddleware(), getMissionById);
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de la mission à s'attribuer
+ *         description: "ID de la mission à s'attribuer"
  *     responses:
  *       200:
- *         description: Mission attribuée avec succès
+ *         description: "Mission attribuée avec succès"
  *       400:
- *         description: Mission déjà attribuée
+ *         description: "Mission déjà attribuée"
  *       403:
- *         description: Accès interdit : rôle non autorisé
+ *         description: "Accès interdit : rôle non autorisé"
  *       404:
- *         description: Mission non trouvée
+ *         description: "Mission non trouvée"
  */
 router.post("/:id/assign", authMiddleware(), assignMission);
 
@@ -249,7 +250,7 @@ router.post("/:id/assign", authMiddleware(), assignMission);
  * @swagger
  * /api/missions/{id}/status:
  *   put:
- *     summary: Mettre à jour le statut de la mission (Technicien uniquement)
+ *     summary: "Mettre à jour le statut de la mission (Technicien uniquement)"
  *     tags:
  *       - Missions
  *     security:
@@ -260,7 +261,7 @@ router.post("/:id/assign", authMiddleware(), assignMission);
  *         required: true
  *         schema:
  *           type: string
- *         description: ID de la mission à mettre à jour
+ *         description: "ID de la mission à mettre à jour"
  *     requestBody:
  *       required: true
  *       content:
@@ -276,15 +277,14 @@ router.post("/:id/assign", authMiddleware(), assignMission);
  *                 example: En route
  *     responses:
  *       200:
- *         description: Statut mis à jour avec succès
+ *         description: "Statut mis à jour avec succès"
  *       400:
- *         description: Statut invalide
+ *         description: "Statut invalide"
  *       403:
- *         description: Accès interdit (technicien non assigné)
+ *         description: "Accès interdit (technicien non assigné)"
  *       404:
- *         description: Mission non trouvée
+ *         description: "Mission non trouvée"
  */
 router.put("/:id/status", authMiddleware(), updateMissionStatus);
-
 
 export default router;
