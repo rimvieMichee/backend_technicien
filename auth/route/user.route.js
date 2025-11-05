@@ -1,16 +1,82 @@
-import { registerUser, loginUser, updateUser, deleteUser, getAllUsers, getProfile, getUserById } from "../controller/user.controller.js";
-// import user from "../../schemas/user.js";
-import authMiddleware from "../../midllewares/authMiddleware.js";
 import express from "express";
+import {
+    registerUser,
+    loginUser,
+    updateUser,
+    deleteUser,
+    getAllUsers,
+    getProfile,
+    getUserById,
+} from "../controller/user.controller.js";
+import authMiddleware from "../../midllewares/authMiddleware.js";
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       required:
+ *         - firstName
+ *         - lastName
+ *         - email
+ *         - password
+ *         - departement
+ *         - post
+ *         - phone
+ *         - role
+ *       properties:
+ *         id:
+ *           type: string
+ *           example: 64fcae12e9b2f43b8a9d2a0a
+ *         firstName:
+ *           type: string
+ *           example: John
+ *         lastName:
+ *           type: string
+ *           example: Doe
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: john.doe@example.com
+ *         password:
+ *           type: string
+ *           format: password
+ *           example: MySecurePass123
+ *         departement:
+ *           type: string
+ *           example: IT
+ *         post:
+ *           type: string
+ *           example: Développeur Fullstack
+ *         phone:
+ *           type: string
+ *           example: "0612345678"
+ *         Avatar:
+ *           type: string
+ *           example: https://example.com/avatar.jpg
+ *         role:
+ *           type: string
+ *           enum: ["Technicien", "Manager", "Admin"]
+ *           example: "Technicien"
+ *       example:
+ *         firstName: Alice
+ *         lastName: Martin
+ *         email: alice.martin@entreprise.com
+ *         password: Secure123
+ *         departement: Maintenance
+ *         post: Technicien réseau
+ *         phone: "0601020304"
+ *         role: Technicien
+ */
 
 /**
  * @swagger
  * /api/users/register:
  *   post:
- *     summary: Register a new user
+ *     summary: Créer un nouvel utilisateur
  *     tags:
  *       - Auth
  *     requestBody:
@@ -18,72 +84,32 @@ const router = express.Router();
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - firstName
- *               - lastName
- *               - email
- *               - password
- *               - departement
- *               - post
- *               - phone
- *             properties:
- *               firstName:
- *                 type: string
- *                 example: John
- *               lastName:
- *                 type: string
- *                 example: Doe
- *               email:
- *                 type: string
- *                 format: email
- *                 example: john.doe@example.com
- *               password:
- *                 type: string
- *                 format: password
- *                 example: MySecurePass123
- *               departement:
- *                 type: string
- *                 example: IT
- *               post:
- *                 type: string
- *                 example: Developer
- *               phone:
- *                 type: string
- *                 example: "0612345678"
- *               Avatar:
- *                 type: string
- *                 example: https://example.com/avatar.jpg
- *               role:
- *                 type: string
- *                 enum: [user, manager, admin]
- *                 example: user
+ *             $ref: '#/components/schemas/User'
  *     responses:
  *       201:
- *         description: User created successfully
+ *         description: Utilisateur créé avec succès
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 data:
+ *                 success:
  *                   type: boolean
  *                   example: true
  *                 user:
- *                   type: object
+ *                   $ref: '#/components/schemas/User'
  *       400:
- *         description: User already exists
+ *         description: L'utilisateur existe déjà
  *       500:
- *         description: Internal server error
+ *         description: Erreur serveur
  */
-
 router.post("/register", registerUser);
 
 /**
  * @swagger
  * /api/users/login:
  *   post:
- *     summary: Login a user
+ *     summary: Authentifier un utilisateur
  *     tags:
  *       - Auth
  *     requestBody:
@@ -98,7 +124,7 @@ router.post("/register", registerUser);
  *             properties:
  *               login:
  *                 type: string
- *                 description: Email or phone
+ *                 description: Email ou numéro de téléphone
  *                 example: john.doe@example.com
  *               password:
  *                 type: string
@@ -106,7 +132,7 @@ router.post("/register", registerUser);
  *                 example: MySecurePass123
  *     responses:
  *       200:
- *         description: Successful login
+ *         description: Connexion réussie
  *         content:
  *           application/json:
  *             schema:
@@ -114,53 +140,51 @@ router.post("/register", registerUser);
  *               properties:
  *                 token:
  *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *                 data:
  *                   $ref: '#/components/schemas/User'
- * 
  *       401:
- *         description: Invalid credentials
+ *         description: Identifiants invalides
  *       404:
- *         description: User not found
+ *         description: Utilisateur introuvable
  *       500:
- *         description: Internal server error
+ *         description: Erreur serveur
  */
-
 router.post("/login", loginUser);
 
 /**
  * @swagger
  * /api/users/profile/{id}:
  *   get:
- *     summary: Get profile of a user by ID
- *     security:
- *       - bearerAuth: []
+ *     summary: Obtenir le profil d’un utilisateur par ID
  *     tags:
  *       - Users
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: User ID
+ *         description: ID de l'utilisateur
  *     responses:
  *       200:
- *         description: User profile retrieved
+ *         description: Profil utilisateur récupéré
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
  *       404:
- *         description: User not found
+ *         description: Utilisateur introuvable
  */
-
-router.get("/profile/:id",authMiddleware(), getProfile);
+router.get("/profile/:id", authMiddleware(), getProfile);
 
 /**
  * @swagger
  * /api/users:
  *   get:
- *     summary: Get all users with optional filters, pagination and search
+ *     summary: Liste paginée et filtrée des utilisateurs
  *     tags:
  *       - Users
  *     security:
@@ -171,56 +195,24 @@ router.get("/profile/:id",authMiddleware(), getProfile);
  *         schema:
  *           type: integer
  *           default: 1
- *         description: Page number for pagination
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 10
- *         description: Number of users per page
- *       - in: query
- *         name: term
- *         schema:
- *           type: string
- *         description: Search term (applies to firstName, lastName, email, phone)
  *       - in: query
  *         name: role
  *         schema:
  *           type: string
- *         description: Filter by role
+ *           enum: ["Technicien", "Manager", "Admin"]
  *       - in: query
- *         name: departement
+ *         name: term
  *         schema:
  *           type: string
- *         description: Filter by department
- *       - in: query
- *         name: post
- *         schema:
- *           type: string
- *         description: Filter by post
- *       - in: query
- *         name: phone
- *         schema:
- *           type: string
- *         description: Filter by phone number
- *       - in: query
- *         name: email
- *         schema:
- *           type: string
- *         description: Filter by email
- *       - in: query
- *         name: firstName
- *         schema:
- *           type: string
- *         description: Filter by first name
- *       - in: query
- *         name: lastName
- *         schema:
- *           type: string
- *         description: Filter by last name
+ *           description: Recherche par nom, email ou téléphone
  *     responses:
  *       200:
- *         description: List of users
+ *         description: Liste des utilisateurs
  *         content:
  *           application/json:
  *             schema:
@@ -242,59 +234,52 @@ router.get("/profile/:id",authMiddleware(), getProfile);
  *                     pages:
  *                       type: integer
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
-
-
-router.get("/",authMiddleware(), getAllUsers);
-
+router.get("/", authMiddleware(), getAllUsers);
 
 /**
  * @swagger
  * /api/users/{id}:
  *   get:
- *     summary: Get user by ID
- *     security:
- *       - bearerAuth: []
+ *     summary: Récupérer un utilisateur par son ID
  *     tags:
  *       - Users
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: User ID
  *     responses:
  *       200:
- *         description: User data
+ *         description: Données utilisateur
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
  *       404:
- *         description: User not found
+ *         description: Utilisateur non trouvé
  */
-
-router.get("/:id",authMiddleware(), getUserById);
-
+router.get("/:id", authMiddleware(), getUserById);
 
 /**
  * @swagger
  * /api/users/{id}:
  *   put:
- *     summary: Update user by ID
- *     security:
- *       - bearerAuth: []
+ *     summary: Modifier un utilisateur par son ID
  *     tags:
  *       - Users
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: User ID
  *     requestBody:
  *       required: true
  *       content:
@@ -303,39 +288,33 @@ router.get("/:id",authMiddleware(), getUserById);
  *             $ref: '#/components/schemas/User'
  *     responses:
  *       200:
- *         description: User updated
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/User'
+ *         description: Utilisateur mis à jour
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
-router.put("/:id",authMiddleware(), updateUser);
-
+router.put("/:id", authMiddleware(), updateUser);
 
 /**
  * @swagger
  * /api/users/{id}:
  *   delete:
- *     summary: Delete user by ID
- *     security:
- *      - bearerAuth: []
+ *     summary: Supprimer un utilisateur par ID
  *     tags:
  *       - Users
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: User ID
  *     responses:
  *       200:
- *         description: User deleted
+ *         description: Utilisateur supprimé
  *       500:
- *         description: Server error
+ *         description: Erreur serveur
  */
-router.delete("/:id",authMiddleware(), deleteUser);
+router.delete("/:id", authMiddleware(), deleteUser);
 
 export default router;
