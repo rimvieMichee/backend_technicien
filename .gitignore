@@ -1,5 +1,7 @@
 # Node modules
 node_modules/
+# Firebase Service Account
+config/serviceAccountKey.json
 
 # Logs
 logs
