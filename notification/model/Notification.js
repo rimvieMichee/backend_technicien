@@ -1,0 +1,35 @@
+import mongoose from "mongoose";
+
+const notificationSchema = new mongoose.Schema(
+    {
+        recipient: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+        },
+        title: {
+            type: String,
+            required: true,
+        },
+        message: {
+            type: String,
+            required: true,
+        },
+        type: {
+            type: String,
+            enum: ["Mission", "System", "User", "Other"],
+            default: "Mission",
+        },
+        relatedId: {
+            type: mongoose.Schema.Types.ObjectId, // ex: ID de mission
+            refPath: "type",
+        },
+        isRead: {
+            type: Boolean,
+            default: false,
+        },
+    },
+    { timestamps: true }
+);
+
+export default mongoose.model("Notification", notificationSchema);

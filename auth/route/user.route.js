@@ -7,6 +7,7 @@ import {
     getAllUsers,
     getProfile,
     getUserById,
+    registerDeviceToken
 } from "../controller/user.controller.js";
 import authMiddleware from "../../midllewares/authMiddleware.js";
 
@@ -61,6 +62,11 @@ const router = express.Router();
  *           type: string
  *           enum: ["Technicien", "Manager", "Admin"]
  *           example: "Technicien"
+ *         deviceTokens:
+ *           type: array
+ *           items:
+ *             type: string
+ *           example: ["fcm_token_123", "fcm_token_456"]
  *       example:
  *         firstName: Alice
  *         lastName: Martin
@@ -316,5 +322,40 @@ router.put("/:id", authMiddleware(), updateUser);
  *         description: Erreur serveur
  */
 router.delete("/:id", authMiddleware(), deleteUser);
+
+/**
+ * @swagger
+ * /api/users/device-token:
+ *   post:
+ *     summary: Enregistrer le token FCM d’un appareil pour recevoir des notifications push
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Token FCM de l’appareil
+ *                 example: "fcm_token_abc123"
+ *     responses:
+ *       200:
+ *         description: Token enregistré avec succès
+ *       400:
+ *         description: Token manquant
+ *       401:
+ *         description: Non autorisé
+ *       500:
+ *         description: Erreur serveur
+ */
+router.post("/device-token", authMiddleware(), registerDeviceToken);
+
 
 export default router;

@@ -24,7 +24,7 @@ const options = {
     },
     security: [{ bearerAuth: [] }],
   },
-  apis: ['./auth/route/*.js', './mission/route/*.js', './schemas/*.js'], // <-- Cible tous les fichiers .js dans routes et sous-dossiers
+  apis: ['./auth/route/*.js', './mission/route/*.js', './notification/route/*.js', './schemas/*.js'], // <-- Cible tous les fichiers .js dans routes et sous-dossiers
 };
 
 const swaggerSpec = swaggerJSDoc(options);

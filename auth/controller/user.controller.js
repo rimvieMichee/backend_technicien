@@ -131,6 +131,33 @@ export const getProfile = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};  
+};
+
+
+export const registerDeviceToken = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ message: "Token manquant" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur introuvable" });
+    }
+
+    // Éviter les doublons
+    if (!user.deviceTokens.includes(token)) {
+      user.deviceTokens.push(token);
+      await user.save();
+    }
+
+    res.status(200).json({ message: "Device token enregistré avec succès" });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
 
 

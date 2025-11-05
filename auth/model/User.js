@@ -34,12 +34,16 @@ const userSchema = mongoose.Schema(
     Avatar : {
         type: String,
     },
-      role: {
-          type: String,
-          enum: ["Technicien", "Manager", "Admin"],
-          default: "Technicien",
-          required: true,
-      }
+    role: {
+        type: String,
+        enum: ["Technicien", "Manager", "Admin"],
+        default: "Technicien",
+        required: true,
+    },
+    deviceTokens: {
+        type: [String], // liste de tokens
+        default: [],
+    },
 
   },
   {
