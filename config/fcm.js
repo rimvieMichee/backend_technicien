@@ -1,23 +1,19 @@
 // config/fcm.js
 import admin from "firebase-admin";
-import { join } from "path";
-import fs from "fs";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// 🔹 Chemin vers le fichier serviceAccountKey.json
-const serviceAccountPath =
-    process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
-    join(process.cwd(), "config", "serviceAccountKey.json");
-
-// 🔹 Lecture et parsing du fichier JSON
+// 🔹 Lecture du JSON depuis la variable d'environnement
 let serviceAccount;
 try {
-    const fileData = fs.readFileSync(serviceAccountPath, "utf8");
-    serviceAccount = JSON.parse(fileData);
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+        throw new Error("FIREBASE_SERVICE_ACCOUNT non défini dans le .env !");
+    }
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
 } catch (err) {
-    console.error("❌ Impossible de lire serviceAccountKey.json :", err.message);
+    console.error("❌ Impossible de parser FIREBASE_SERVICE_ACCOUNT :", err.message);
     process.exit(1);
 }
 
@@ -28,7 +24,7 @@ try {
     });
     console.log("✅ Firebase Admin initialisé avec succès !");
 } catch (error) {
-    console.error("❌ Erreur lors de l'initialisation de Firebase Admin:", error);
+    console.error("❌ Erreur lors de l'initialisation de Firebase Admin :", error);
     process.exit(1);
 }
 
@@ -40,29 +36,29 @@ try {
  * @param {object} data - Données personnalisées optionnelles
  */
 export const sendPushNotification = async (deviceTokens, title, body, data = {}) => {
-    if (!deviceTokens || (Array.isArray(deviceTokens) && deviceTokens.length === 0)) return;
+    if (!deviceTokens || (Array.isArray(deviceTokens) && deviceTokens.length === 0)) {
+        return { successCount: 0, failureCount: 0 };
+    }
 
     const message = {
         notification: { title, body },
-        data: {
-            ...data,
-            click_action: "FLUTTER_NOTIFICATION_CLICK", // nécessaire pour Flutter
-        },
+        data: { ...data, click_action: "FLUTTER_NOTIFICATION_CLICK" },
         tokens: Array.isArray(deviceTokens) ? deviceTokens : [deviceTokens],
     };
 
     try {
         const response = await admin.messaging().sendMulticast(message);
-        console.log(`📱 Notifications envoyées : ${response.successCount} succès, ${response.failureCount} échecs`);
 
         if (response.failureCount > 0) {
             response.responses.forEach((resp, idx) => {
-                if (!resp.success)
-                    console.error(`❌ Échec notification pour token ${message.tokens[idx]}:`, resp.error);
+                if (!resp.success) console.error(`❌ Échec notification pour token ${message.tokens[idx]}:`, resp.error);
             });
         }
+
+        return { successCount: response.successCount, failureCount: response.failureCount };
     } catch (err) {
         console.error("🚨 Erreur lors de l'envoi de notification:", err);
+        return { successCount: 0, failureCount: message.tokens.length };
     }
 };
 
