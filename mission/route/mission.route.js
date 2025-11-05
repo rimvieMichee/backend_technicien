@@ -81,7 +81,7 @@ const router = express.Router();
  *       500:
  *         description: "Erreur serveur"
  */
-router.post("/", authMiddleware(), authorizeRoles("manager"), createMission);
+router.post("/", authMiddleware(), authorizeRoles("Manager", "Admin"), createMission);
 
 /**
  * @swagger
@@ -113,7 +113,7 @@ router.post("/", authMiddleware(), authorizeRoles("manager"), createMission);
  *       500:
  *         description: "Erreur serveur"
  */
-router.put("/:id", authMiddleware(), authorizeRoles("manager"), updateMission);
+router.put("/:id", authMiddleware(), authorizeRoles("Manager", "Admin"), updateMission);
 
 /**
  * @swagger
@@ -139,7 +139,7 @@ router.put("/:id", authMiddleware(), authorizeRoles("manager"), updateMission);
  *       500:
  *         description: "Erreur serveur"
  */
-router.delete("/:id", authMiddleware(), authorizeRoles("manager"), deleteMission);
+router.delete("/:id", authMiddleware(), authorizeRoles("Manager", "Admin"), deleteMission);
 
 // ------------------- ALL AUTHENTICATED ROUTES -------------------
 
