@@ -63,7 +63,7 @@
  *         descriptif:
  *           type: string
  *           description: Description détaillée de la mission
- *           example: "Le serveur principal est à l'arrêt depuis 8h du matin, provoquant une coupure du réseau interne."
+ *           example: "Le serveur principal est à l'arrêt depuis 8h du matin."
  *         materiel_remplacement_requis:
  *           type: boolean
  *           description: Indique si un remplacement de matériel est requis
@@ -81,12 +81,62 @@
  *         statut_mission:
  *           type: string
  *           description: Statut actuel de la mission
- *           enum: [Disponible, En route, Arrivé sur site, En cours, En attente de pièces, Terminée]
+ *           enum: [Disponible, Attribuée, En route, Arrivé sur site, En cours, En attente de pièces, Terminée]
  *           example: Disponible
  *         technicien_attribue:
  *           type: string
  *           description: ID du technicien assigné à la mission
  *           example: 64bfa2b5f2e4e2a1c1a5c6d2
+ *         sla_capture:
+ *           type: object
+ *           description: Timestamps pour le suivi SLA de la mission
+ *           properties:
+ *             creation_date:
+ *               type: string
+ *               format: date-time
+ *               example: "2025-11-05T10:15:30Z"
+ *             attribution_date:
+ *               type: string
+ *               format: date-time
+ *               example: "2025-11-05T11:00:00Z"
+ *             en_route_date:
+ *               type: string
+ *               format: date-time
+ *               example: "2025-11-05T11:30:00Z"
+ *             arrivee_site_date:
+ *               type: string
+ *               format: date-time
+ *               example: "2025-11-05T12:00:00Z"
+ *             en_cours_date:
+ *               type: string
+ *               format: date-time
+ *               example: "2025-11-05T12:15:00Z"
+ *             terminee_date:
+ *               type: string
+ *               format: date-time
+ *               example: "2025-11-05T14:30:00Z"
+ *             rapport_soumis_date:
+ *               type: string
+ *               format: date-time
+ *               example: "2025-11-05T15:00:00Z"
+ *         rapport_intervention:
+ *           type: object
+ *           description: Rapport d'intervention du technicien
+ *           properties:
+ *             titre:
+ *               type: string
+ *               example: "Remplacement disque dur"
+ *             description:
+ *               type: string
+ *               example: "Le disque dur défectueux a été remplacé."
+ *             materiel_utilise:
+ *               type: array
+ *               items:
+ *                 type: string
+ *               example: ["Disque dur 1TB", "Visserie"]
+ *             resolution:
+ *               type: string
+ *               example: "Résolu"
  *         photos:
  *           type: array
  *           description: Liste des URLs des photos prises durant l’intervention
@@ -100,7 +150,7 @@
  *         commentaire_technicien:
  *           type: string
  *           description: Commentaire ou rapport du technicien
- *           example: "Remplacement du disque dur et redémarrage réussi du serveur."
+ *           example: "Remplacement du disque dur et redémarrage réussi."
  *         resolution_statut:
  *           type: string
  *           description: Statut de résolution de la mission
@@ -108,6 +158,6 @@
  *           example: Résolu
  *         synchronise:
  *           type: boolean
- *           description: Statut de synchronisation de la mission (utile pour le mode hors-ligne)
+ *           description: Statut de synchronisation (mode hors-ligne)
  *           example: true
  */

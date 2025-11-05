@@ -2,11 +2,13 @@
 import mongoose from "mongoose";
 
 const slaSchema = new mongoose.Schema({
-    creation_date: Date,
-    attribution_date: Date,
-    en_route_date: Date,
-    arrivee_site_date: Date,
-    rapport_soumis_date: Date
+    creation_date: { type: Date, default: Date.now },
+    attribution_date: { type: Date },
+    en_route_date: { type: Date },
+    arrivee_site_date: { type: Date },
+    en_cours_date: { type: Date },
+    terminee_date: { type: Date },
+    rapport_soumis_date: { type: Date }
 }, { _id: false });
 
 const rapportSchema = new mongoose.Schema({
@@ -36,12 +38,13 @@ const missionSchema = new mongoose.Schema({
     materiel_remplacement_requis: { type: Boolean, default: false },
     statut_mission: {
         type: String,
-        enum: ["Disponible", "En cours", "En attente de pièces", "Terminée"],
+        enum: ["Disponible", "Attribuée", "En route", "Arrivé sur site", "En cours", "En attente de pièces", "Terminée"],
         default: "Disponible"
     },
     technicien_attribue: { type: String, default: null },
     sla_capture: slaSchema,
-    rapport_intervention: rapportSchema
+    rapport_intervention: rapportSchema,
+    createdBy: { type: String }
 }, { timestamps: true });
 
 export default mongoose.model("Mission", missionSchema);
