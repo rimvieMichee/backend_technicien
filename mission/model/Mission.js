@@ -41,10 +41,18 @@ const missionSchema = new mongoose.Schema({
         enum: ["Disponible", "Attribuée", "En route", "Arrivé sur site", "En cours", "En attente de pièces", "Terminée"],
         default: "Disponible"
     },
-    technicien_attribue: { type: String, default: null },
+    technicien_attribue: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null
+    },
     sla_capture: slaSchema,
     rapport_intervention: rapportSchema,
-    createdBy: { type: String }
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
 }, { timestamps: true });
 
 export default mongoose.model("Mission", missionSchema);

@@ -3,6 +3,7 @@ import Mission from "../model/Mission.js";
 import User from "../../auth/model/User.js";
 import { createNotification } from "../../notification/utils/notify.js";
 import { sendPushNotification } from "../../config/fcm.js";
+import {populate} from "dotenv";
 
 // --------------------
 // 🟢 Créer une mission (Manager)
@@ -55,27 +56,41 @@ export const createMission = async (req, res) => {
 // --------------------
 // 🟡 Récupérer toutes les missions
 // --------------------
+
+
 export const getAllMissions = async (req, res) => {
     try {
-        const missions = await Mission.find().sort({ createdAt: -1 });
+        const missions = await Mission.find()
+            .populate("createdBy", "firstName lastName phone") // 👈 ici on précise les champs à inclure
+            .populate("technicien_attribue", "firstName lastName phone"); // (optionnel)
+
         res.status(200).json(missions);
     } catch (error) {
-        res.status(500).json({ message: "Erreur lors de la récupération des missions", error: error.message });
+        res.status(500).json({ message: "Erreur lors de la récupération des missions", error });
     }
 };
+
 
 // --------------------
 // 🟢 Récupérer une mission par ID
 // --------------------
 export const getMissionById = async (req, res) => {
     try {
-        const mission = await Mission.findById(req.params.id);
-        if (!mission) return res.status(404).json({ message: "Mission non trouvée" });
+        const mission = await Mission.findById(req.params.id)
+            .populate("createdBy", "firstName lastName phone")
+            .populate("technicien_attribue", "firstName lastName phone");
+
+        if (!mission) {
+            return res.status(404).json({ message: "Mission non trouvée" });
+        }
+
         res.status(200).json(mission);
     } catch (error) {
+        console.error("Erreur getMissionById:", error);
         res.status(500).json({ message: "Erreur serveur", error: error.message });
     }
 };
+
 
 // --------------------
 // 🟢 Mettre à jour une mission (Manager)
