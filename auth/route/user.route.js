@@ -7,7 +7,10 @@ import {
     getAllUsers,
     getProfile,
     getUserById,
-    registerDeviceToken
+    registerDeviceToken,
+    resetPasswordWithOTP,
+    sendPasswordResetOTP,
+    logoutUser
 } from "../controller/user.controller.js";
 import authMiddleware from "../../midllewares/authMiddleware.js";
 
@@ -157,6 +160,113 @@ router.post("/register", registerUser);
  *         description: Erreur serveur
  */
 router.post("/login", loginUser);
+
+/**
+ * @swagger
+ * /api/users/forgot-password:
+ *   post:
+ *     summary: Envoyer un code OTP par e-mail pour réinitialiser le mot de passe
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: cedric.kontogom@sahelys.com
+ *     responses:
+ *       200:
+ *         description: Code OTP envoyé par e-mail
+ *       404:
+ *         description: Utilisateur introuvable
+ *       500:
+ *         description: Erreur serveur
+ */
+router.post("/forgot-password", sendPasswordResetOTP);
+
+
+/**
+ * @swagger
+ * /api/users/reset-password:
+ *   post:
+ *     summary: Réinitialiser le mot de passe avec un code OTP
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: cedric.kontogom@sahelys.com
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: "NouveauMotDePasse123"
+ *     responses:
+ *       200:
+ *         description: Mot de passe réinitialisé avec succès
+ *       400:
+ *         description: Code OTP invalide ou expiré
+ *       500:
+ *         description: Erreur serveur
+ */
+router.post("/reset-password", resetPasswordWithOTP);
+
+
+/**
+ * @swagger
+ * /api/users/logout:
+ *   post:
+ *     summary: Déconnecter un utilisateur (supprime le token d'appareil)
+ *     tags:
+ *       - Auth
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Token FCM de l'appareil à retirer
+ *                 example: "fcm_token_123"
+ *     responses:
+ *       200:
+ *         description: Déconnexion réussie
+ *       401:
+ *         description: Non autorisé
+ *       500:
+ *         description: Erreur serveur
+ */
+router.post("/logout", authMiddleware(), logoutUser);
+
+
+
+
 
 /**
  * @swagger

@@ -54,14 +54,14 @@ export const createMission = async (req, res) => {
 };
 
 // --------------------
-// 🟡 Récupérer toutes les missions
+//  Récupérer toutes les missions
 // --------------------
 
 
 export const getAllMissions = async (req, res) => {
     try {
         const missions = await Mission.find()
-            .populate("createdBy", "firstName lastName phone post") // 👈 ici on précise les champs à inclure
+            .populate("createdBy", "firstName lastName phone post") //  ici on précise les champs à inclure
             .populate("technicien_attribue", "firstName lastName phone post"); // (optionnel)
 
         res.status(200).json(missions);
@@ -72,7 +72,7 @@ export const getAllMissions = async (req, res) => {
 
 
 // --------------------
-// 🟢 Récupérer une mission par ID
+// Récupérer une mission par ID
 // --------------------
 export const getMissionById = async (req, res) => {
     try {

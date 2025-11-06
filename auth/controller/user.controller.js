@@ -2,6 +2,8 @@ import User from "../model/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { sendEmail } from "../../auth/utils/sendEmail.js";
+import crypto from "crypto";
 
 dotenv.config();
 
@@ -155,6 +157,83 @@ export const registerDeviceToken = async (req, res) => {
     }
 
     res.status(200).json({ message: "Device token enregistré avec succès" });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+
+
+// Envoyer un code OTP pour réinitialiser le mot de passe
+export const sendPasswordResetOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    // Générer un code OTP à 6 chiffres
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Stocker OTP et date d'expiration (10 min)
+    user.resetPasswordOTP = otp;
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+    await user.save();
+
+    await sendEmail(
+        user.email,
+        "Réinitialisation de mot de passe - Mistra",
+        `Bonjour ${user.firstName} ${user.lastName},\n\nVoici votre code de réinitialisation : ${otp}\nCe code expire dans 10 minutes.\n\nCordialement,\nL'équipe Mistra`
+    );
+
+    res.status(200).json({ message: "Code OTP envoyé par e-mail." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Vérifier le code OTP et réinitialiser le mot de passe
+export const resetPasswordWithOTP = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    const user = await User.findOne({
+      email,
+      resetPasswordOTP: otp,
+      resetPasswordExpires: { $gt: Date.now() }, // non expiré
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Code OTP invalide ou expiré." });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.resetPasswordOTP = null;
+    user.resetPasswordExpires = null;
+
+    await user.save();
+
+    res.status(200).json({ message: "Mot de passe réinitialisé avec succès." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+// Déconnexion (invalidation de device token)
+
+export const logoutUser = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { token } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    user.deviceTokens = user.deviceTokens.filter((t) => t !== token);
+    await user.save();
+
+    res.status(200).json({ message: "Déconnexion réussie." });
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
