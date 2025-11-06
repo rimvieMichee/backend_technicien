@@ -1,0 +1,94 @@
+import Chat from "../model/Chat.js";
+import Message from "../model/Message.js";
+import User from "../../auth/model/User.js";
+
+/**
+ * Créer une conversation entre deux utilisateurs (private chat)
+ */
+export const createChat = async (req, res) => {
+    try {
+        const { participantId } = req.body;
+        const userId = req.user._id; // récupéré depuis authMiddleware
+
+        // Vérifier si une conversation existe déjà entre ces deux utilisateurs
+        let chat = await Chat.findOne({
+            type: "private",
+            participants: { $all: [userId, participantId] },
+        });
+
+        if (!chat) {
+            chat = await Chat.create({
+                participants: [userId, participantId],
+                type: "private",
+            });
+        }
+
+        res.status(201).json(chat);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+};
+
+/**
+ * Envoyer un message
+ */
+export const sendMessage = async (req, res) => {
+    try {
+        const { conversationId, text } = req.body;
+        const sender = req.user._id;
+
+        const message = await Message.create({
+            conversation: conversationId,
+            sender,
+            text,
+        });
+
+        // Mettre à jour le dernier message de la conversation
+        await Chat.findByIdAndUpdate(conversationId, { lastMessage: message._id });
+
+        // Émettre le message en temps réel via Socket.IO
+        req.io.to(conversationId).emit("newMessage", message);
+
+        res.status(201).json(message);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+};
+
+/**
+ * Récupérer tous les messages d'une conversation
+ */
+export const getMessages = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const messages = await Message.find({ conversation: conversationId })
+            .populate("sender", "firstName lastName email")
+            .sort({ createdAt: 1 });
+
+        res.status(200).json(messages);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+};
+
+/**
+ * Récupérer toutes les conversations d'un utilisateur
+ */
+export const getChats = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        const chats = await Chat.find({ participants: userId })
+            .populate("participants", "firstName lastName email role")
+            .populate("lastMessage")
+            .sort({ updatedAt: -1 });
+
+        res.status(200).json(chats);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+};

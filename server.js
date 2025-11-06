@@ -4,6 +4,10 @@ import cors from "cors";
 import http from "http";
 import { Server } from "socket.io";
 import connectDB from "./config/db.js";
+import Chat from "./chat/model/Chat.js";
+import Message from "./chat/model/Message.js";
+
+
 
 // Routes
 import userRoutes from "./auth/route/user.route.js";
@@ -69,6 +73,30 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("Utilisateur déconnecté, socket id:", socket.id);
   });
+
+  // Rejoindre une room de conversation
+  socket.on("joinConversation", (conversationId) => {
+    socket.join(conversationId);
+    console.log(`Socket ${socket.id} rejoint la conversation ${conversationId}`);
+  });
+
+  // Écoute des messages envoyés
+  socket.on("sendMessage", async (data) => {
+    const { conversationId, text, senderId } = data;
+
+    const message = await Message.create({
+      conversation: conversationId,
+      sender: senderId,
+      text,
+    });
+
+    // Mettre à jour dernier message dans Chat
+    await Chat.findByIdAndUpdate(conversationId, { lastMessage: message._id });
+
+    // Émettre le message à tous les participants
+    io.to(conversationId).emit("newMessage", message);
+  });
+
 });
 
 // Lancement du serveur
