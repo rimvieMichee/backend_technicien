@@ -34,27 +34,27 @@ const router = express.Router();
  *           example: 64fcae12e9b2f43b8a9d2a0a
  *         firstName:
  *           type: string
- *           example: John
+ *           example: Cedric
  *         lastName:
  *           type: string
- *           example: Doe
+ *           example: KONTOGOM
  *         email:
  *           type: string
  *           format: email
- *           example: john.doe@example.com
+ *           example: cedric.kontogom@sahelys.com
  *         password:
  *           type: string
  *           format: password
- *           example: MySecurePass123
+ *           example: Cedric123
  *         departement:
  *           type: string
  *           example: IT
  *         post:
  *           type: string
- *           example: Développeur Fullstack
+ *           example: Technicien réseau
  *         phone:
  *           type: string
- *           example: "0612345678"
+ *           example: "06606060"
  *         Avatar:
  *           type: string
  *           example: https://example.com/avatar.jpg
@@ -68,13 +68,13 @@ const router = express.Router();
  *             type: string
  *           example: ["fcm_token_123", "fcm_token_456"]
  *       example:
- *         firstName: Alice
- *         lastName: Martin
- *         email: alice.martin@entreprise.com
- *         password: Secure123
- *         departement: Maintenance
+ *         firstName: Cedric
+ *         lastName: KONTOGOM
+ *         email: cedric.kontogom@sahelys.com
+ *         password: Cedric123
+ *         departement: IT
  *         post: Technicien réseau
- *         phone: "0601020304"
+ *         phone: "06606060"
  *         role: Technicien
  */
 
@@ -131,11 +131,11 @@ router.post("/register", registerUser);
  *               login:
  *                 type: string
  *                 description: Email ou numéro de téléphone
- *                 example: john.doe@example.com
+ *                 example: cedric.kontogom@sahelys.com
  *               password:
  *                 type: string
  *                 format: password
- *                 example: MySecurePass123
+ *                 example: Cedric123
  *     responses:
  *       200:
  *         description: Connexion réussie
