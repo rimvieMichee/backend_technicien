@@ -61,8 +61,8 @@ export const createMission = async (req, res) => {
 export const getAllMissions = async (req, res) => {
     try {
         const missions = await Mission.find()
-            .populate("createdBy", "firstName lastName phone") // 👈 ici on précise les champs à inclure
-            .populate("technicien_attribue", "firstName lastName phone"); // (optionnel)
+            .populate("createdBy", "firstName lastName phone post") // 👈 ici on précise les champs à inclure
+            .populate("technicien_attribue", "firstName lastName phone post"); // (optionnel)
 
         res.status(200).json(missions);
     } catch (error) {
@@ -77,8 +77,8 @@ export const getAllMissions = async (req, res) => {
 export const getMissionById = async (req, res) => {
     try {
         const mission = await Mission.findById(req.params.id)
-            .populate("createdBy", "firstName lastName phone")
-            .populate("technicien_attribue", "firstName lastName phone");
+            .populate("createdBy", "firstName lastName phone post")
+            .populate("technicien_attribue", "firstName lastName phone post");
 
         if (!mission) {
             return res.status(404).json({ message: "Mission non trouvée" });
