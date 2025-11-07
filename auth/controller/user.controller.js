@@ -1,23 +1,23 @@
-import User from "../model/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-import { sendEmail } from "../../auth/utils/sendEmail.js";
-import crypto from "crypto";
+import mongoose from "mongoose";
+import User from "../model/User.js";
+import { sendEmail } from "../utils/sendEmail.js";
 
-dotenv.config();
+// --- UTILITAIRES ---
+const validateObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-
+// --- REGISTER USER ---
 export const registerUser = async (req, res) => {
   const { firstName, lastName, email, password, departement, post, phone, Avatar, role } = req.body;
   try {
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    if (existingUser)
       return res.status(400).json({ message: "User already exists" });
-    }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+
     const user = await User.create({
       firstName,
       lastName,
@@ -29,73 +29,87 @@ export const registerUser = async (req, res) => {
       Avatar,
       role,
     });
-    user.password = null
-    res.status(201).json({ data: true, user });
+
+    const userData = { ...user._doc };
+    delete userData.password;
+
+    res.status(201).json({ data: true, user: userData });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// --- LOGIN USER ---
 export const loginUser = async (req, res) => {
   const { login, password } = req.body;
-    try {
-        console.log(login,password);
-       const user = await User.findOne({ $or: [{ email: login }, { phone: login }] });
-       console.log(user);
-       if (!user) {
-         return res.status(404).json({ message: "User not found" });
-       }
-         const isMatch = await bcrypt.compare(password, user.password);
-         if (!isMatch) {
-           return res.status(401).json({ message: "Invalid credentials" });
-         }
+  try {
+    const user = await User.findOne({ $or: [{ email: login }, { phone: login }] });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-         delete user._doc.password;
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "24h" });
-         res.status(200).json({ token, data: user });
-    } catch (error) {
-       res.status(500).json({ message: error.message });
-    }
+    const userData = { ...user._doc };
+    delete userData.password;
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "24h" });
+
+    res.status(200).json({ token, data: userData });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
+// --- UPDATE USER ---
 export const updateUser = async (req, res) => {
   const { id } = req.params;
+  if (!validateObjectId(id)) return res.status(400).json({ message: "ID utilisateur invalide" });
+
   try {
     const user = await User.findByIdAndUpdate(id, req.body, { new: true });
-    res.status(200).json({ data: user });
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    const userData = { ...user._doc };
+    delete userData.password;
+
+    res.status(200).json({ data: userData });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// --- DELETE USER ---
 export const deleteUser = async (req, res) => {
   const { id } = req.params;
+  if (!validateObjectId(id)) return res.status(400).json({ message: "ID utilisateur invalide" });
+
   try {
     const user = await User.findByIdAndDelete(id);
-    res.status(200).json({ data: user });
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    res.status(200).json({ data: true });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// --- GET ALL USERS ---
 export const getAllUsers = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const term = req.query.term || "";
-    const {role, departement, post, phone, email, firstName, lastName } = req.query;
     const skip = (page - 1) * limit;
-    const total = await User.countDocuments();
+    const term = req.query.term || "";
+    const { role, departement, post, phone, email, firstName, lastName } = req.query;
 
     const filter = {};
-    if (term && term.trim() !== "") {
+    if (term.trim() !== "") {
       const regex = { $regex: term, $options: "i" };
       filter.$or = [
         { firstName: regex },
         { lastName: regex },
         { email: regex },
-        { phone: regex }
+        { phone: regex },
       ];
     }
     if (role) filter.role = role;
@@ -106,54 +120,70 @@ export const getAllUsers = async (req, res) => {
     if (firstName) filter.firstName = firstName;
     if (lastName) filter.lastName = lastName;
 
+    const total = await User.countDocuments(filter);
     const users = await User.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 });
-    res.status(200).json({ data: users, pagination: { total, page, limit, pages: Math.ceil(total / limit) } });
-    // const users = await User.find();
-    // res.status(200).json({ data: users });
+
+    const usersData = users.map(u => {
+      const uData = { ...u._doc };
+      delete uData.password;
+      return uData;
+    });
+
+    res.status(200).json({
+      data: usersData,
+      pagination: { total, page, limit, pages: Math.ceil(total / limit) }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// --- GET USER BY ID ---
 export const getUserById = async (req, res) => {
   const { id } = req.params;
+  if (!validateObjectId(id)) return res.status(400).json({ message: "ID utilisateur invalide" });
 
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: "ID utilisateur invalide" });
-  }
-
-  const user = await User.findById(id);
-  if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
-
-  res.status(200).json(user);
-};
-
-export const getProfile = async (req, res) => {
-  const { id } = req.params;
   try {
     const user = await User.findById(id);
-    res.status(200).json({ data: user });
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    const userData = { ...user._doc };
+    delete userData.password;
+
+    res.status(200).json(userData);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// --- GET PROFILE ---
+export const getProfile = async (req, res) => {
+  const { id } = req.params;
+  if (!validateObjectId(id)) return res.status(400).json({ message: "ID utilisateur invalide" });
 
+  try {
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+    const userData = { ...user._doc };
+    delete userData.password;
+
+    res.status(200).json({ data: userData });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// --- REGISTER DEVICE TOKEN ---
 export const registerDeviceToken = async (req, res) => {
   try {
     const userId = req.user.id;
     const { token } = req.body;
-
-    if (!token) {
-      return res.status(400).json({ message: "Token manquant" });
-    }
+    if (!token) return res.status(400).json({ message: "Token manquant" });
 
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "Utilisateur introuvable" });
-    }
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
 
-    // Éviter les doublons
     if (!user.deviceTokens.includes(token)) {
       user.deviceTokens.push(token);
       await user.save();
@@ -161,23 +191,18 @@ export const registerDeviceToken = async (req, res) => {
 
     res.status(200).json({ message: "Device token enregistré avec succès" });
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur", error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
-
-
-// Envoyer un code OTP pour réinitialiser le mot de passe
+// --- SEND OTP ---
 export const sendPasswordResetOTP = async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
 
-    // Générer un code OTP à 6 chiffres
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Stocker OTP et date d'expiration (10 min)
     user.resetPasswordOTP = otp;
     user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
     await user.save();
@@ -194,7 +219,7 @@ export const sendPasswordResetOTP = async (req, res) => {
   }
 };
 
-// Vérifier le code OTP et réinitialiser le mot de passe
+// --- RESET PASSWORD WITH OTP ---
 export const resetPasswordWithOTP = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
@@ -202,12 +227,10 @@ export const resetPasswordWithOTP = async (req, res) => {
     const user = await User.findOne({
       email,
       resetPasswordOTP: otp,
-      resetPasswordExpires: { $gt: Date.now() }, // non expiré
+      resetPasswordExpires: { $gt: Date.now() },
     });
 
-    if (!user) {
-      return res.status(400).json({ message: "Code OTP invalide ou expiré." });
-    }
+    if (!user) return res.status(400).json({ message: "Code OTP invalide ou expiré." });
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
@@ -215,16 +238,13 @@ export const resetPasswordWithOTP = async (req, res) => {
     user.resetPasswordExpires = null;
 
     await user.save();
-
     res.status(200).json({ message: "Mot de passe réinitialisé avec succès." });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-
-// Déconnexion (invalidation de device token)
-
+// --- LOGOUT USER ---
 export const logoutUser = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -233,13 +253,11 @@ export const logoutUser = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
 
-    user.deviceTokens = user.deviceTokens.filter((t) => t !== token);
+    user.deviceTokens = user.deviceTokens.filter(t => t !== token);
     await user.save();
 
     res.status(200).json({ message: "Déconnexion réussie." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur", error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
-
-
