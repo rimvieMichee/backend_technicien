@@ -117,12 +117,15 @@ export const getAllUsers = async (req, res) => {
 
 export const getUserById = async (req, res) => {
   const { id } = req.params;
-  try {
-    const user = await User.findById(id);
-    res.status(200).json({ data: user });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "ID utilisateur invalide" });
   }
+
+  const user = await User.findById(id);
+  if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+
+  res.status(200).json(user);
 };
 
 export const getProfile = async (req, res) => {

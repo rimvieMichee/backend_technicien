@@ -83,6 +83,73 @@ const router = express.Router();
 
 /**
  * @swagger
+ * /api/users/forgot-password:
+ *   post:
+ *     summary: Envoyer un code OTP par e-mail pour réinitialiser le mot de passe
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: cedric.kontogom@sahelys.com
+ *     responses:
+ *       200:
+ *         description: Code OTP envoyé par e-mail
+ *       404:
+ *         description: Utilisateur introuvable
+ *       500:
+ *         description: Erreur serveur
+ */
+router.post("/forgot-password", sendPasswordResetOTP);
+/**
+ * @swagger
+ * /api/users/reset-password:
+ *   post:
+ *     summary: Réinitialiser le mot de passe avec un code OTP
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: cedric.kontogom@sahelys.com
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: "NouveauMotDePasse123"
+ *     responses:
+ *       200:
+ *         description: Mot de passe réinitialisé avec succès
+ *       400:
+ *         description: Code OTP invalide ou expiré
+ *       500:
+ *         description: Erreur serveur
+ */
+router.post("/reset-password", resetPasswordWithOTP);
+/**
+ * @swagger
  * /api/users/register:
  *   post:
  *     summary: Créer un nouvel utilisateur
@@ -113,7 +180,6 @@ const router = express.Router();
  *         description: Erreur serveur
  */
 router.post("/register", registerUser);
-
 /**
  * @swagger
  * /api/users/login:
@@ -160,76 +226,6 @@ router.post("/register", registerUser);
  *         description: Erreur serveur
  */
 router.post("/login", loginUser);
-
-/**
- * @swagger
- * /api/users/forgot-password:
- *   post:
- *     summary: Envoyer un code OTP par e-mail pour réinitialiser le mot de passe
- *     tags:
- *       - Auth
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: cedric.kontogom@sahelys.com
- *     responses:
- *       200:
- *         description: Code OTP envoyé par e-mail
- *       404:
- *         description: Utilisateur introuvable
- *       500:
- *         description: Erreur serveur
- */
-router.post("/forgot-password", sendPasswordResetOTP);
-
-/**
- * @swagger
- * /api/users/reset-password:
- *   post:
- *     summary: Réinitialiser le mot de passe avec un code OTP
- *     tags:
- *       - Auth
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - otp
- *               - newPassword
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: cedric.kontogom@sahelys.com
- *               otp:
- *                 type: string
- *                 example: "123456"
- *               newPassword:
- *                 type: string
- *                 format: password
- *                 example: "NouveauMotDePasse123"
- *     responses:
- *       200:
- *         description: Mot de passe réinitialisé avec succès
- *       400:
- *         description: Code OTP invalide ou expiré
- *       500:
- *         description: Erreur serveur
- */
-router.post("/reset-password", resetPasswordWithOTP);
-
 /**
  * @swagger
  * /api/users/logout:
@@ -261,7 +257,39 @@ router.post("/reset-password", resetPasswordWithOTP);
  *         description: Erreur serveur
  */
 router.post("/logout", authMiddleware(), logoutUser);
-
+/**
+ * @swagger
+ * /api/users/device-token:
+ *   post:
+ *     summary: Enregistrer le token FCM d’un appareil pour recevoir des notifications push
+ *     tags:
+ *       - Notifications
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Token FCM de l’appareil
+ *                 example: "fcm_token_abc123"
+ *     responses:
+ *       200:
+ *         description: Token enregistré avec succès
+ *       400:
+ *         description: Token manquant
+ *       401:
+ *         description: Non autorisé
+ *       500:
+ *         description: Erreur serveur
+ */
+router.post("/device-token", authMiddleware(), registerDeviceToken);
 /**
  * @swagger
  * /api/users/profile/{id}:
@@ -289,7 +317,82 @@ router.post("/logout", authMiddleware(), logoutUser);
  *         description: Utilisateur introuvable
  */
 router.get("/profile/:id", authMiddleware(), getProfile);
-
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   get:
+ *     summary: Récupérer un utilisateur par son ID
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Données utilisateur
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       404:
+ *         description: Utilisateur non trouvé
+ */
+router.get("/:id", authMiddleware(), getUserById);
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   put:
+ *     summary: Modifier un utilisateur par son ID
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/User'
+ *     responses:
+ *       200:
+ *         description: Utilisateur mis à jour
+ *       500:
+ *         description: Erreur serveur
+ */
+router.put("/:id", authMiddleware(), updateUser);
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   delete:
+ *     summary: Supprimer un utilisateur par ID
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Utilisateur supprimé
+ *       500:
+ *         description: Erreur serveur
+ */
+router.delete("/:id", authMiddleware(), deleteUser);
 /**
  * @swagger
  * /api/users:
@@ -348,117 +451,5 @@ router.get("/profile/:id", authMiddleware(), getProfile);
  */
 router.get("/", authMiddleware(), getAllUsers);
 
-/**
- * @swagger
- * /api/users/{id}:
- *   put:
- *     summary: Modifier un utilisateur par son ID
- *     tags:
- *       - Users
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/User'
- *     responses:
- *       200:
- *         description: Utilisateur mis à jour
- *       500:
- *         description: Erreur serveur
- */
-router.put("/:id", authMiddleware(), updateUser);
-
-/**
- * @swagger
- * /api/users/{id}:
- *   delete:
- *     summary: Supprimer un utilisateur par ID
- *     tags:
- *       - Users
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Utilisateur supprimé
- *       500:
- *         description: Erreur serveur
- */
-router.delete("/:id", authMiddleware(), deleteUser);
-
-/**
- * @swagger
- * /api/users/device-token:
- *   post:
- *     summary: Enregistrer le token FCM d’un appareil pour recevoir des notifications push
- *     tags:
- *       - Notifications
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - token
- *             properties:
- *               token:
- *                 type: string
- *                 description: Token FCM de l’appareil
- *                 example: "fcm_token_abc123"
- *     responses:
- *       200:
- *         description: Token enregistré avec succès
- *       400:
- *         description: Token manquant
- *       401:
- *         description: Non autorisé
- *       500:
- *         description: Erreur serveur
- */
-router.post("/device-token", authMiddleware(), registerDeviceToken);
-
-/**
- * @swagger
- * /api/users/{id}:
- *   get:
- *     summary: Récupérer un utilisateur par son ID
- *     tags:
- *       - Users
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Données utilisateur
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/User'
- *       404:
- *         description: Utilisateur non trouvé
- */
-router.get("/:id", authMiddleware(), getUserById);
 
 export default router;
