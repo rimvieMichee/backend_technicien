@@ -15,6 +15,75 @@ import authorizeRoles from "../../midllewares/roleMidleware.js";
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /api/missions/technicien:
+ *   get:
+ *     summary: "Récupérer toutes les missions attribuées au technicien connecté"
+ *     tags:
+ *       - Missions
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: "Liste des missions attribuées au technicien connecté"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Missions du technicien récupérées avec succès"
+ *                 missions:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Mission'
+ *       401:
+ *         description: "Non authentifié - token manquant ou invalide"
+ *       500:
+ *         description: "Erreur serveur"
+ */
+router.get(
+    "/technicien",
+    authMiddleware(),
+    authorizeRoles("Technicien"),
+    getMissionsByTechnicien
+);
+
+/**
+ * @swagger
+ * /api/missions/technicien/{id}:
+ *   get:
+ *     summary: "Récupérer toutes les missions d’un technicien donné (Manager/Admin uniquement)"
+ *     tags:
+ *       - Missions
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: "ID du technicien dont on veut voir les missions"
+ *     responses:
+ *       200:
+ *         description: "Liste des missions du technicien"
+ *       403:
+ *         description: "Accès interdit : rôle non autorisé"
+ *       404:
+ *         description: "Technicien non trouvé"
+ *       500:
+ *         description: "Erreur serveur"
+ */
+router.get(
+    "/technicien/:id",
+    authMiddleware(),
+    authorizeRoles("Manager", "Admin"),
+    getMissionsByTechnicienId
+);
+
 // ------------------- MANAGER ROUTES -------------------
 
 /**
@@ -219,38 +288,7 @@ router.get("/", authMiddleware(), getAllMissions);
 router.get("/:id", authMiddleware(), getMissionById);
 
 
-/**
- * @swagger
- * /api/missions/technicien/{id}:
- *   get:
- *     summary: "Récupérer toutes les missions d’un technicien donné (Manager/Admin uniquement)"
- *     tags:
- *       - Missions
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: "ID du technicien dont on veut voir les missions"
- *     responses:
- *       200:
- *         description: "Liste des missions du technicien"
- *       403:
- *         description: "Accès interdit : rôle non autorisé"
- *       404:
- *         description: "Technicien non trouvé"
- *       500:
- *         description: "Erreur serveur"
- */
-router.get(
-    "/technicien/:id",
-    authMiddleware(),
-    authorizeRoles("Manager", "Admin"),
-    getMissionsByTechnicienId
-);
+
 
 
 // ------------------- TECHNICIEN ROUTES -------------------
@@ -283,41 +321,7 @@ router.get(
  */
 router.post("/:id/assign", authMiddleware(), assignMission);
 
-/**
- * @swagger
- * /api/missions/technicien:
- *   get:
- *     summary: "Récupérer toutes les missions attribuées au technicien connecté"
- *     tags:
- *       - Missions
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: "Liste des missions attribuées au technicien connecté"
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Missions du technicien récupérées avec succès"
- *                 missions:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Mission'
- *       401:
- *         description: "Non authentifié - token manquant ou invalide"
- *       500:
- *         description: "Erreur serveur"
- */
-router.get(
-    "/technicien/missions",
-    authMiddleware(),
-    authorizeRoles("Technicien"),
-    getMissionsByTechnicien
-);
+
 
 
 /**
