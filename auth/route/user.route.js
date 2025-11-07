@@ -191,7 +191,6 @@ router.post("/login", loginUser);
  */
 router.post("/forgot-password", sendPasswordResetOTP);
 
-
 /**
  * @swagger
  * /api/users/reset-password:
@@ -231,7 +230,6 @@ router.post("/forgot-password", sendPasswordResetOTP);
  */
 router.post("/reset-password", resetPasswordWithOTP);
 
-
 /**
  * @swagger
  * /api/users/logout:
@@ -263,10 +261,6 @@ router.post("/reset-password", resetPasswordWithOTP);
  *         description: Erreur serveur
  */
 router.post("/logout", authMiddleware(), logoutUser);
-
-
-
-
 
 /**
  * @swagger
@@ -357,33 +351,6 @@ router.get("/", authMiddleware(), getAllUsers);
 /**
  * @swagger
  * /api/users/{id}:
- *   get:
- *     summary: Récupérer un utilisateur par son ID
- *     tags:
- *       - Users
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Données utilisateur
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/User'
- *       404:
- *         description: Utilisateur non trouvé
- */
-router.get("/:id", authMiddleware(), getUserById);
-
-/**
- * @swagger
- * /api/users/{id}:
  *   put:
  *     summary: Modifier un utilisateur par son ID
  *     tags:
@@ -467,5 +434,31 @@ router.delete("/:id", authMiddleware(), deleteUser);
  */
 router.post("/device-token", authMiddleware(), registerDeviceToken);
 
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   get:
+ *     summary: Récupérer un utilisateur par son ID
+ *     tags:
+ *       - Users
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Données utilisateur
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       404:
+ *         description: Utilisateur non trouvé
+ */
+router.get("/:id", authMiddleware(), getUserById);
 
 export default router;
