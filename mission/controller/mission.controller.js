@@ -83,7 +83,7 @@ export const createMission = async (req, res) => {
 
 export const getAllMissions = async (req, res) => {
     try {
-        const missions = await Mission.find()
+        const missions = await Mission.find({statut_mission: "Disponible"})
             .populate("createdBy", "firstName lastName phone post") //  ici on précise les champs à inclure
             .populate("technicien_attribue", "firstName lastName phone post"); // (optionnel)
 
