@@ -15,7 +15,7 @@ async function sendTestEmail() {
         });
 
         const info = await transporter.sendMail({
-            from: `"Technicien API" <${process.env.SMTP_USER}>`,
+            from: `"Technicien" <${process.env.SMTP_USER}>`,
             to: "rimvie5812@gmail.com",
             subject: "Test de notification Technicien",
             html: `
@@ -25,7 +25,7 @@ async function sendTestEmail() {
       `,
         });
 
-        console.log("✅ Email envoyé :", info.messageId);
+        console.log("=========Email envoyé :", info.messageId);
     } catch (error) {
         console.error("❌ Erreur d'envoi d'email :", error);
     }

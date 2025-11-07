@@ -148,6 +148,11 @@ export const assignMission = async (req, res) => {
         if (!mission) return res.status(404).json({ message: "Mission non trouvée" });
         if (mission.technicien_attribue) return res.status(400).json({ message: "Mission déjà attribuée" });
 
+        // ✅ Sécuriser l'accès à sla_capture
+        if (!mission.sla_capture) {
+            mission.sla_capture = {};
+        }
+
         mission.technicien_attribue = userId;
         mission.statut_mission = "Attribuée";
         mission.sla_capture.attribution_date = new Date();
@@ -159,6 +164,7 @@ export const assignMission = async (req, res) => {
         const managers = await User.find({ role: "Manager" });
         for (const manager of managers) {
             const notifMessage = `${technicien.firstName} ${technicien.lastName} s’est attribué la mission "${mission.titre_mission}".`;
+
             await createNotification(manager._id, "Mission attribuée", notifMessage, "Mission", mission._id);
 
             req.io.to(manager._id.toString()).emit("notification", {
@@ -174,9 +180,11 @@ export const assignMission = async (req, res) => {
 
         res.status(200).json({ message: "Mission attribuée avec succès", mission });
     } catch (error) {
+        console.error("Erreur assignMission:", error);
         res.status(500).json({ message: "Erreur lors de l’attribution", error: error.message });
     }
 };
+
 
 // --------------------
 // Technicien met à jour le statut

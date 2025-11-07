@@ -152,7 +152,7 @@ router.post("/reset-password", resetPasswordWithOTP);
  * @swagger
  * /api/users/register:
  *   post:
- *     summary: Créer un nouvel utilisateur
+ *     summary: Créer un nouveau compte ( numéro de telephone et adress e-mail unique )
  *     tags:
  *       - Auth
  *     requestBody:
@@ -184,7 +184,7 @@ router.post("/register", registerUser);
  * @swagger
  * /api/users/login:
  *   post:
- *     summary: Authentifier un utilisateur
+ *     summary: Se connecter à un compte ( numero de telephone ou numero de telephone )
  *     tags:
  *       - Auth
  *     requestBody:
@@ -230,7 +230,7 @@ router.post("/login", loginUser);
  * @swagger
  * /api/users/logout:
  *   post:
- *     summary: Déconnecter un utilisateur (supprime le token d'appareil)
+ *     summary: Déconnecter un utilisateur
  *     tags:
  *       - Auth
  *     security:
