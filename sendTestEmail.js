@@ -16,8 +16,8 @@ async function sendTestEmail() {
 
         const info = await transporter.sendMail({
             from: `"Technicien API" <${process.env.SMTP_USER}>`,
-            to: "rimvie5812@gmail.com", // ou un autre destinataire
-            subject: "🚀 Test de notification Technicien",
+            to: "rimvie5812@gmail.com",
+            subject: "Test de notification Technicien",
             html: `
         <h2>Notification reçue !</h2>
         <p>Ceci est un test d'envoi d'e-mail via Gmail et Nodemailer.</p>
