@@ -59,6 +59,10 @@ const missionSchema = new mongoose.Schema({
         ref: "User",
         required: true
     },
+    missionsTerminees: {
+        type: Boolean,
+        default: false
+    }
 }, { timestamps: true });
 
 export default mongoose.model("Mission", missionSchema);

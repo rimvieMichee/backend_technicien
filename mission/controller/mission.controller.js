@@ -32,6 +32,9 @@ export const createMission = async (req, res) => {
             };
         }
 
+        // ✅ Initialiser missionsTerminees à false
+        missionData.missionsTerminees = false;
+
         // 💾 Création de la mission
         const mission = await Mission.create(missionData);
 
@@ -40,17 +43,14 @@ export const createMission = async (req, res) => {
         for (const tech of technicians) {
             const notifMessage = `Une nouvelle mission "${mission.titre_mission}" a été créée.`;
 
-            // DB
             await createNotification(tech._id, "Nouvelle mission disponible", notifMessage, "Mission", mission._id);
 
-            // Socket.IO
             req.io.to(tech._id.toString()).emit("notification", {
                 title: "Nouvelle mission disponible",
                 message: notifMessage,
                 missionId: mission._id.toString(),
             });
 
-            // FCM push
             if (tech.deviceTokens?.length > 0) {
                 await sendPushNotification(
                     tech.deviceTokens,
@@ -61,7 +61,6 @@ export const createMission = async (req, res) => {
             }
         }
 
-        // ✅ Réponse claire et homogène
         res.status(201).json({
             message: "Mission créée avec succès",
             mission,
@@ -74,6 +73,7 @@ export const createMission = async (req, res) => {
         });
     }
 };
+
 
 
 // --------------------
@@ -201,8 +201,16 @@ export const getMissionById = async (req, res) => {
 // --------------------
 export const updateMission = async (req, res) => {
     try {
-        const mission = await Mission.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const mission = await Mission.findById(req.params.id);
         if (!mission) return res.status(404).json({ message: "Mission non trouvée" });
+
+        // Mettre à jour tous les champs reçus
+        Object.assign(mission, req.body);
+
+        // ✅ Mettre à jour missionsTerminees selon le statut
+        mission.missionsTerminees = mission.statut_mission === "Terminée";
+
+        await mission.save();
 
         // Notifier le technicien attribué
         if (mission.technicien_attribue) {
@@ -210,6 +218,7 @@ export const updateMission = async (req, res) => {
             const notifMessage = `Les détails de la mission "${mission.titre_mission}" ont été modifiés.`;
 
             await createNotification(tech._id, "Mise à jour de votre mission", notifMessage, "Mission", mission._id);
+
             req.io.to(tech._id.toString()).emit("notification", {
                 title: "Mise à jour de mission",
                 message: notifMessage,
@@ -260,6 +269,10 @@ export const assignMission = async (req, res) => {
         mission.technicien_attribue = userId;
         mission.statut_mission = "Attribuée";
         mission.sla_capture.attribution_date = new Date();
+
+        // ✅ Mettre à jour missionsTerminees
+        mission.missionsTerminees = mission.statut_mission === "Terminée";
+
         await mission.save();
 
         const technicien = await User.findById(userId);
@@ -301,18 +314,35 @@ export const updateMissionStatus = async (req, res) => {
 
         const mission = await Mission.findById(missionId);
         if (!mission) return res.status(404).json({ message: "Mission non trouvée" });
-        if (mission.technicien_attribue?.toString() !== userId) return res.status(403).json({ message: "Non autorisé à modifier cette mission" });
+        if (mission.technicien_attribue?.toString() !== userId)
+            return res.status(403).json({ message: "Non autorisé à modifier cette mission" });
 
         const technicien = await User.findById(userId);
 
         const now = new Date();
         switch (statut_mission) {
-            case "En route": mission.sla_capture.en_route_date = now; break;
-            case "Arrivé sur site": mission.sla_capture.arrivee_site_date = now; break;
-            case "En cours": mission.sla_capture.en_cours_date = now; break;
-            case "Terminée": mission.sla_capture.terminee_date = now; break;
-            default: return res.status(400).json({ message: "Statut invalide" });
+            case "En route":
+                mission.sla_capture.en_route_date = now;
+                break;
+            case "Arrivé sur site":
+                mission.sla_capture.arrivee_site_date = now;
+                break;
+            case "En cours":
+                mission.sla_capture.en_cours_date = now;
+                break;
+            case "Terminée":
+                mission.sla_capture.terminee_date = now;
+                mission.missionsTerminees = true; // ✅ Mettre à jour missionsTerminees
+                break;
+            default:
+                return res.status(400).json({ message: "Statut invalide" });
         }
+
+        // Si le statut n'est plus "Terminée", s'assurer que missionsTerminees est false
+        if (statut_mission !== "Terminée") {
+            mission.missionsTerminees = false;
+        }
+
         mission.statut_mission = statut_mission;
         await mission.save();
 
@@ -325,11 +355,13 @@ export const updateMissionStatus = async (req, res) => {
             req.io.to(manager._id.toString()).emit("notification", {
                 title: "Mise à jour de mission",
                 message: notifMessage,
-                missionId: mission._id.toString()
+                missionId: mission._id.toString(),
             });
 
             if (manager.deviceTokens?.length > 0) {
-                await sendPushNotification(manager.deviceTokens, "Mise à jour de mission", notifMessage, { missionId: mission._id.toString() });
+                await sendPushNotification(manager.deviceTokens, "Mise à jour de mission", notifMessage, {
+                    missionId: mission._id.toString(),
+                });
             }
         }
 
