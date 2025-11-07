@@ -46,7 +46,13 @@ const missionSchema = new mongoose.Schema({
         ref: "User",
         default: null
     },
-    sla_capture: slaSchema,
+    sla_capture: {
+        attribution_date: { type: Date, default: null },
+        en_route_date: { type: Date, default: null },
+        arrivee_site_date: { type: Date, default: null },
+        en_cours_date: { type: Date, default: null },
+        terminee_date: { type: Date, default: null },
+    },
     rapport_intervention: rapportSchema,
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,

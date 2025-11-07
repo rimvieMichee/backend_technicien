@@ -12,15 +12,30 @@ export const createMission = async (req, res) => {
     try {
         const missionData = req.body;
 
+        // 🔢 Générer un idMission s’il n’existe pas déjà
         if (!missionData.idMission) {
             const count = await Mission.countDocuments();
             missionData.idMission = `M-${String(count + 1).padStart(3, "0")}-2025`;
         }
 
+        // 👤 L’auteur de la mission
         missionData.createdBy = req.user.id;
+
+        // ✅ S'assurer que sla_capture existe toujours
+        if (!missionData.sla_capture) {
+            missionData.sla_capture = {
+                attribution_date: null,
+                en_route_date: null,
+                arrivee_site_date: null,
+                en_cours_date: null,
+                terminee_date: null,
+            };
+        }
+
+        // 💾 Création de la mission
         const mission = await Mission.create(missionData);
 
-        // Notifier tous les techniciens
+        // 🔔 Notifier tous les techniciens
         const technicians = await User.find({ role: "Technicien" });
         for (const tech of technicians) {
             const notifMessage = `Une nouvelle mission "${mission.titre_mission}" a été créée.`;
@@ -32,7 +47,7 @@ export const createMission = async (req, res) => {
             req.io.to(tech._id.toString()).emit("notification", {
                 title: "Nouvelle mission disponible",
                 message: notifMessage,
-                missionId: mission._id.toString()
+                missionId: mission._id.toString(),
             });
 
             // FCM push
@@ -46,12 +61,20 @@ export const createMission = async (req, res) => {
             }
         }
 
-        res.status(201).json({ message: "Mission créée avec succès", mission });
+        // ✅ Réponse claire et homogène
+        res.status(201).json({
+            message: "Mission créée avec succès",
+            mission,
+        });
     } catch (error) {
         console.error("Erreur création mission:", error);
-        res.status(400).json({ message: "Erreur lors de la création de la mission", error: error.message });
+        res.status(400).json({
+            message: "Erreur lors de la création de la mission",
+            error: error.message,
+        });
     }
 };
+
 
 // --------------------
 //  Récupérer toutes les missions
@@ -69,6 +92,40 @@ export const getAllMissions = async (req, res) => {
         res.status(500).json({ message: "Erreur lors de la récupération des missions", error });
     }
 };
+
+
+// --------------------
+// 🟢 Récupérer toutes les missions attribuées à un technicien donné
+// --------------------
+export const getMissionsByTechnicien = async (req, res) => {
+    try {
+        const userId = req.user.id; // 🧍‍♂️ technicien connecté (via le token JWT)
+
+        const missions = await Mission.find({ technicien_attribue: userId })
+            .populate("createdBy", "firstName lastName phone post")
+            .populate("technicien_attribue", "firstName lastName phone post")
+            .sort({ createdAt: -1 }); // plus récentes d'abord
+
+        if (missions.length === 0) {
+            return res.status(200).json({
+                message: "Aucune mission attribuée à ce technicien",
+                missions: [],
+            });
+        }
+
+        res.status(200).json({
+            message: "Missions du technicien récupérées avec succès",
+            missions,
+        });
+    } catch (error) {
+        console.error("Erreur getMissionsByTechnicien:", error);
+        res.status(500).json({
+            message: "Erreur lors de la récupération des missions du technicien",
+            error: error.message,
+        });
+    }
+};
+
 
 
 // --------------------

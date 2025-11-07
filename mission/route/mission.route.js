@@ -6,7 +6,8 @@ import {
     updateMission,
     deleteMission,
     assignMission,
-    updateMissionStatus
+    updateMissionStatus,
+    getMissionsByTechnicien
 } from "../controller/mission.controller.js";
 import authMiddleware from "../../midllewares/authMiddleware.js";
 import authorizeRoles from "../../midllewares/roleMidleware.js";
@@ -245,6 +246,43 @@ router.get("/:id", authMiddleware(), getMissionById);
  *         description: "Mission non trouvée"
  */
 router.post("/:id/assign", authMiddleware(), assignMission);
+
+/**
+ * @swagger
+ * /api/missions/technicien/missions:
+ *   get:
+ *     summary: "Récupérer toutes les missions attribuées au technicien connecté"
+ *     tags:
+ *       - Missions
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: "Liste des missions attribuées au technicien connecté"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Missions du technicien récupérées avec succès"
+ *                 missions:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Mission'
+ *       401:
+ *         description: "Non authentifié - token manquant ou invalide"
+ *       500:
+ *         description: "Erreur serveur"
+ */
+router.get(
+    "/technicien/missions",
+    authMiddleware(),
+    authorizeRoles("Technicien"),
+    getMissionsByTechnicien
+);
+
 
 /**
  * @swagger
