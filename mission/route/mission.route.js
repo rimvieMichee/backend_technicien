@@ -7,7 +7,8 @@ import {
     deleteMission,
     assignMission,
     updateMissionStatus,
-    getMissionsByTechnicien
+    getMissionsByTechnicien,
+    getMissionsByTechnicienId
 } from "../controller/mission.controller.js";
 import authMiddleware from "../../midllewares/authMiddleware.js";
 import authorizeRoles from "../../midllewares/roleMidleware.js";
@@ -217,6 +218,41 @@ router.get("/", authMiddleware(), getAllMissions);
  */
 router.get("/:id", authMiddleware(), getMissionById);
 
+
+/**
+ * @swagger
+ * /api/missions/technicien/{id}:
+ *   get:
+ *     summary: "Récupérer toutes les missions d’un technicien donné (Manager/Admin uniquement)"
+ *     tags:
+ *       - Missions
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: "ID du technicien dont on veut voir les missions"
+ *     responses:
+ *       200:
+ *         description: "Liste des missions du technicien"
+ *       403:
+ *         description: "Accès interdit : rôle non autorisé"
+ *       404:
+ *         description: "Technicien non trouvé"
+ *       500:
+ *         description: "Erreur serveur"
+ */
+router.get(
+    "/technicien/:id",
+    authMiddleware(),
+    authorizeRoles("Manager", "Admin"),
+    getMissionsByTechnicienId
+);
+
+
 // ------------------- TECHNICIEN ROUTES -------------------
 
 /**
@@ -249,7 +285,7 @@ router.post("/:id/assign", authMiddleware(), assignMission);
 
 /**
  * @swagger
- * /api/missions/technicien/missions:
+ * /api/missions/technicien:
  *   get:
  *     summary: "Récupérer toutes les missions attribuées au technicien connecté"
  *     tags:

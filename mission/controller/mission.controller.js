@@ -97,34 +97,81 @@ export const getAllMissions = async (req, res) => {
 // --------------------
 // 🟢 Récupérer toutes les missions attribuées à un technicien donné
 // --------------------
+// --------------------
+// 🟢 Récupérer les missions du technicien connecté
+// --------------------
 export const getMissionsByTechnicien = async (req, res) => {
     try {
-        const userId = req.user.id; // 🧍‍♂️ technicien connecté (via le token JWT)
+        const userId = req.user.id; //  Technicien connecté (via JWT)
 
+        //  Rechercher les missions attribuées à ce technicien
         const missions = await Mission.find({ technicien_attribue: userId })
             .populate("createdBy", "firstName lastName phone post")
             .populate("technicien_attribue", "firstName lastName phone post")
-            .sort({ createdAt: -1 }); // plus récentes d'abord
+            .sort({ createdAt: -1 });
 
-        if (missions.length === 0) {
+        //  Si aucune mission
+        if (!missions || missions.length === 0) {
             return res.status(200).json({
                 message: "Aucune mission attribuée à ce technicien",
                 missions: [],
             });
         }
 
+        //  Succès
         res.status(200).json({
-            message: "Missions du technicien récupérées avec succès",
+            message: `Missions du technicien récupérées avec succès (${missions.length})`,
             missions,
         });
+
     } catch (error) {
-        console.error("Erreur getMissionsByTechnicien:", error);
+        console.error("❌ Erreur getMissionsByTechnicien:", error);
         res.status(500).json({
             message: "Erreur lors de la récupération des missions du technicien",
             error: error.message,
         });
     }
 };
+
+
+// 🟢 (Manager/Admin) Récupérer les missions d’un technicien donné
+// --------------------
+export const getMissionsByTechnicienId = async (req, res) => {
+    try {
+        const { id } = req.params; // ✅ ID du technicien transmis dans l’URL
+
+        // Vérification de l’existence du technicien
+        const technicien = await User.findById(id);
+        if (!technicien || technicien.role !== "Technicien") {
+            return res.status(404).json({ message: "Technicien non trouvé" });
+        }
+
+        // Rechercher les missions attribuées à ce technicien
+        const missions = await Mission.find({ technicien_attribue: id })
+            .populate("createdBy", "firstName lastName phone post")
+            .populate("technicien_attribue", "firstName lastName phone post")
+            .sort({ createdAt: -1 });
+
+        if (!missions || missions.length === 0) {
+            return res.status(200).json({
+                message: `Aucune mission attribuée à ${technicien.firstName} ${technicien.lastName}`,
+                missions: [],
+            });
+        }
+
+        res.status(200).json({
+            message: `Missions de ${technicien.firstName} ${technicien.lastName} récupérées avec succès (${missions.length})`,
+            missions,
+        });
+    } catch (error) {
+        console.error("❌ Erreur getMissionsByTechnicienId:", error);
+        res.status(500).json({
+            message: "Erreur lors de la récupération des missions du technicien",
+            error: error.message,
+        });
+    }
+};
+
 
 
 
