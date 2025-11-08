@@ -37,48 +37,75 @@ export const sendMessage = async (req, res) => {
     try {
         const { text } = req.body;
         const { conversationId } = req.params;
-        const sender = req.user.id;
+        const senderId = req.user.id;
 
         // Créer le message
         const message = await Message.create({
             conversation: conversationId,
-            sender,
+            sender: senderId,
             text,
         });
 
-        // Mettre à jour le dernier message de la conversation
+        // Mettre à jour le dernier message dans la conversation
         await Chat.findByIdAndUpdate(conversationId, { lastMessage: message._id });
 
         // Émettre le message à tous les participants via Socket.IO
         req.io.to(conversationId).emit("newMessage", message);
 
         // ====== Notification au destinataire ======
-        // Récupérer la conversation pour identifier le destinataire
-        const chat = await Chat.findById(conversationId).populate("participants", "_id firstName deviceTokens");
-        if (chat) {
-            // Destinataire = celui qui n'est pas l'expéditeur
-            const recipient = chat.participants.find(p => p._id.toString() !== sender);
-            if (recipient) {
-                const notifMessage = `Nouveau message de ${req.user.firstName || "un utilisateur"} : "${text}"`;
+        // Récupérer la conversation avec participants
+        const chat = await Chat.findById(conversationId).populate(
+            "participants",
+            "_id firstName deviceTokens"
+        );
 
-                // Créer une notification dans la base
-                await createNotification(recipient._id, "Nouveau message", notifMessage, "Chat", conversationId);
+        if (!chat) {
+            console.warn("Conversation non trouvée pour la notification:", conversationId);
+        } else {
+            // Destinataire = participant qui n'est pas l'expéditeur
+            const recipient = chat.participants.find(p => p._id.toString() !== senderId);
+            if (!recipient) {
+                console.warn("Destinataire introuvable pour la notification, conversationId:", conversationId);
+            } else {
+                const senderName = req.user.firstName || "Un utilisateur";
+                const notifMessage = `Nouveau message de ${senderName} : "${text}"`;
 
-                // Émettre la notification en temps réel via Socket.IO
-                req.io.to(recipient._id.toString()).emit("notification", {
-                    title: "Nouveau message",
-                    message: notifMessage,
-                    conversationId,
-                });
-
-                // Optionnel : push notification si deviceTokens présents
-                if (recipient.deviceTokens?.length > 0) {
-                    await sendPushNotification(
-                        recipient.deviceTokens,
+                // Créer la notification en base
+                try {
+                    await createNotification(
+                        recipient._id,
                         "Nouveau message",
                         notifMessage,
-                        { conversationId }
+                        "Chat",
+                        conversationId
                     );
+                } catch (notifErr) {
+                    console.error("Erreur création notification en DB:", notifErr);
+                }
+
+                // Émettre notification en temps réel via Socket.IO
+                try {
+                    req.io.to(recipient._id.toString()).emit("notification", {
+                        title: "Nouveau message",
+                        message: notifMessage,
+                        conversationId,
+                    });
+                } catch (socketErr) {
+                    console.error("Erreur envoi notification via Socket.IO:", socketErr);
+                }
+
+                // Envoi push si deviceTokens définis
+                if (recipient.deviceTokens?.length > 0) {
+                    try {
+                        await sendPushNotification(
+                            recipient.deviceTokens,
+                            "Nouveau message",
+                            notifMessage,
+                            { conversationId }
+                        );
+                    } catch (pushErr) {
+                        console.error("Erreur envoi push notification:", pushErr);
+                    }
                 }
             }
         }
@@ -86,9 +113,10 @@ export const sendMessage = async (req, res) => {
         res.status(201).json(message);
     } catch (err) {
         console.error("Erreur sendMessage:", err);
-        res.status(500).json({ message: "Erreur serveur" });
+        res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
 };
+
 
 
 
