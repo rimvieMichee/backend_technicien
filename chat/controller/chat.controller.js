@@ -63,20 +63,23 @@ export const sendMessage = async (req, res) => {
             console.warn("Conversation non trouvée pour la notification:", conversationId);
         } else {
             // Destinataire = celui qui n'est pas l'expéditeur
-            let recipient = chat.participants.find(p => p._id.toString() !== senderId);
+            let recipient = chat.participants.find(
+                p => p._id.toString() !== senderId.toString()
+            );
 
-            // Si populate échoue, récupérer par ID depuis la DB
+            // Si recipient n'est pas trouvé, récupérer directement depuis DB
             if (!recipient) {
-                const recipientId = chat.participants.find(p => p.toString() !== senderId);
-                if (recipientId) {
-                    recipient = await User.findById(recipientId);
-                }
+                const recipientId = chat.participants.find(
+                    p => p.toString() !== senderId.toString()
+                );
+                if (recipientId) recipient = await User.findById(recipientId);
             }
 
             if (!recipient) {
                 console.warn("Destinataire introuvable pour la notification, conversationId:", conversationId);
             } else {
-                const senderName = req.user.firstName || "Un utilisateur";
+                const senderUser = await User.findById(senderId); // Récupérer infos de l'expéditeur
+                const senderName = senderUser?.firstName || "Un utilisateur";
                 const notifMessage = `Nouveau message de ${senderName} : "${text}"`;
 
                 // Créer la notification en DB avec type "Message"
@@ -85,7 +88,7 @@ export const sendMessage = async (req, res) => {
                         recipient._id,
                         "Nouveau message",
                         notifMessage,
-                        "Message",          // ✅ Type Message
+                        "Message",          // ✅ Type Message dans le modèle
                         conversationId
                     );
                     console.log("Notification créée en DB pour:", recipient._id);
@@ -129,8 +132,6 @@ export const sendMessage = async (req, res) => {
         res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
 };
-
-
 
 /**
  * Récupérer tous les messages d'une conversation
