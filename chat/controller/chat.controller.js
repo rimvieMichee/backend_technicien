@@ -8,7 +8,7 @@ import User from "../../auth/model/User.js";
 export const createChat = async (req, res) => {
     try {
         const { participantId } = req.body;
-        const userId = req.user._id; // récupéré depuis authMiddleware
+        const userId = req.user.id; // ✅ correction ici
 
         // Vérifier si une conversation existe déjà entre ces deux utilisateurs
         let chat = await Chat.findOne({
@@ -25,7 +25,7 @@ export const createChat = async (req, res) => {
 
         res.status(201).json(chat);
     } catch (err) {
-        console.error(err);
+        console.error("Erreur createChat:", err);
         res.status(500).json({ message: "Erreur serveur" });
     }
 };
@@ -36,7 +36,7 @@ export const createChat = async (req, res) => {
 export const sendMessage = async (req, res) => {
     try {
         const { conversationId, text } = req.body;
-        const sender = req.user._id;
+        const sender = req.user.id; // ✅ correction ici aussi
 
         const message = await Message.create({
             conversation: conversationId,
@@ -52,7 +52,7 @@ export const sendMessage = async (req, res) => {
 
         res.status(201).json(message);
     } catch (err) {
-        console.error(err);
+        console.error("Erreur sendMessage:", err);
         res.status(500).json({ message: "Erreur serveur" });
     }
 };
@@ -69,7 +69,7 @@ export const getMessages = async (req, res) => {
 
         res.status(200).json(messages);
     } catch (err) {
-        console.error(err);
+        console.error("Erreur getMessages:", err);
         res.status(500).json({ message: "Erreur serveur" });
     }
 };
@@ -79,7 +79,7 @@ export const getMessages = async (req, res) => {
  */
 export const getChats = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user.id; // ✅ correction ici aussi
 
         const chats = await Chat.find({ participants: userId })
             .populate("participants", "firstName lastName email role")
@@ -88,7 +88,7 @@ export const getChats = async (req, res) => {
 
         res.status(200).json(chats);
     } catch (err) {
-        console.error(err);
+        console.error("Erreur getChats:", err);
         res.status(500).json({ message: "Erreur serveur" });
     }
 };

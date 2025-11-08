@@ -4,19 +4,20 @@ import cors from "cors";
 import http from "http";
 import { Server } from "socket.io";
 import connectDB from "./config/db.js";
-import Chat from "./chat/model/Chat.js";
-import Message from "./chat/model/Message.js";
+
 
 
 
 // Routes
 import userRoutes from "./auth/route/user.route.js";
 import missionRoutes from "./mission/route/mission.route.js";
+import chatRoute from "./chat/route/chat.route.js";
+import notificationRoute from "./notification/route/notification.route.js";
 
 // Swagger
 import swaggerDocs from "./swagger.js";
-import chatRoute from "./chat/route/chat.route.js";
-import notificationRoute from "./notification/route/notification.route.js";
+
+
 
 dotenv.config(); // Charger les variables d'environnement
 
