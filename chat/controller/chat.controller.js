@@ -1,6 +1,8 @@
 import Chat from "../model/Chat.js";
 import Message from "../model/Message.js";
 import User from "../../auth/model/User.js";
+import {createNotification} from "../../notification/utils/notify.js";
+import {sendPushNotification} from "../../config/fcm.js";
 
 /**
  * Créer une conversation entre deux utilisateurs (private chat)
@@ -88,7 +90,7 @@ export const sendMessage = async (req, res) => {
                         recipient._id,
                         "Nouveau message",
                         notifMessage,
-                        "Message",          // ✅ Type Message dans le modèle
+                        "Message",
                         conversationId
                     );
                     console.log("Notification créée en DB pour:", recipient._id);
