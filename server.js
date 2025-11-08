@@ -53,7 +53,7 @@ app.use(express.json());
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/missions", missionRoutes);
-app.use("/api/chats", chatRoute);
+app.use("/api/chat", chatRoute);
 app.use("/api/notifications", notificationRoute);
 
 // Swagger
