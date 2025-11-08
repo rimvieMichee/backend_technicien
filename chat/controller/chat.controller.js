@@ -39,22 +39,22 @@ export const sendMessage = async (req, res) => {
         const { conversationId } = req.params;
         const senderId = req.user.id;
 
-        // Créer le message
+        // 1️⃣ Créer le message
         const message = await Message.create({
             conversation: conversationId,
             sender: senderId,
             text,
         });
 
-        // Mettre à jour le dernier message dans la conversation
+        // 2️⃣ Mettre à jour le dernier message de la conversation
         await Chat.findByIdAndUpdate(conversationId, { lastMessage: message._id });
 
-        // Émettre le message à tous les participants via Socket.IO
+        // 3️⃣ Émettre le message via Socket.IO à tous les participants
         req.io.to(conversationId).emit("newMessage", message);
 
         // ====== Notification au destinataire ======
         // Récupérer la conversation avec participants
-        const chat = await Chat.findById(conversationId).populate(
+        let chat = await Chat.findById(conversationId).populate(
             "participants",
             "_id firstName deviceTokens"
         );
@@ -62,15 +62,24 @@ export const sendMessage = async (req, res) => {
         if (!chat) {
             console.warn("Conversation non trouvée pour la notification:", conversationId);
         } else {
-            // Destinataire = participant qui n'est pas l'expéditeur
-            const recipient = chat.participants.find(p => p._id.toString() !== senderId);
+            // Destinataire = celui qui n'est pas l'expéditeur
+            let recipient = chat.participants.find(p => p._id.toString() !== senderId);
+
+            // Si populate échoue, récupérer par ID depuis la DB
+            if (!recipient) {
+                const recipientId = chat.participants.find(p => p.toString() !== senderId);
+                if (recipientId) {
+                    recipient = await User.findById(recipientId);
+                }
+            }
+
             if (!recipient) {
                 console.warn("Destinataire introuvable pour la notification, conversationId:", conversationId);
             } else {
                 const senderName = req.user.firstName || "Un utilisateur";
                 const notifMessage = `Nouveau message de ${senderName} : "${text}"`;
 
-                // Créer la notification en base
+                // Créer la notification en DB
                 try {
                     await createNotification(
                         recipient._id,
@@ -79,6 +88,7 @@ export const sendMessage = async (req, res) => {
                         "Chat",
                         conversationId
                     );
+                    console.log("Notification créée en DB pour:", recipient._id);
                 } catch (notifErr) {
                     console.error("Erreur création notification en DB:", notifErr);
                 }
@@ -90,11 +100,12 @@ export const sendMessage = async (req, res) => {
                         message: notifMessage,
                         conversationId,
                     });
+                    console.log("Notification Socket.IO envoyée à:", recipient._id);
                 } catch (socketErr) {
-                    console.error("Erreur envoi notification via Socket.IO:", socketErr);
+                    console.error("Erreur envoi notification Socket.IO:", socketErr);
                 }
 
-                // Envoi push si deviceTokens définis
+                // Push notification si deviceTokens définis
                 if (recipient.deviceTokens?.length > 0) {
                     try {
                         await sendPushNotification(
@@ -103,21 +114,21 @@ export const sendMessage = async (req, res) => {
                             notifMessage,
                             { conversationId }
                         );
+                        console.log("Push notification envoyée à:", recipient._id);
                     } catch (pushErr) {
-                        console.error("Erreur envoi push notification:", pushErr);
+                        console.error("Erreur push notification:", pushErr);
                     }
                 }
             }
         }
 
         res.status(201).json(message);
+
     } catch (err) {
         console.error("Erreur sendMessage:", err);
         res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
 };
-
-
 
 
 /**
