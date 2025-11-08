@@ -24,6 +24,10 @@ const notificationSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             refPath: "type",
         },
+        tag: {
+            type: String,
+            default: null,
+        },
         isRead: {
             type: Boolean,
             default: false,

@@ -10,7 +10,7 @@ import {sendPushNotification} from "../../config/fcm.js";
 export const createChat = async (req, res) => {
     try {
         const { participantId } = req.body;
-        const userId = req.user.id; // ✅ correction ici
+        const userId = req.user.id; // correction ici
 
         // Vérifier si une conversation existe déjà entre ces deux utilisateurs
         let chat = await Chat.findOne({
@@ -91,7 +91,8 @@ export const sendMessage = async (req, res) => {
                         "Nouveau message",
                         notifMessage,
                         "Message",
-                        conversationId
+                        conversationId,
+                        "important"
                     );
                     console.log("Notification créée en DB pour:", recipient._id);
                 } catch (notifErr) {

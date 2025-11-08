@@ -30,7 +30,7 @@ export const createMission = async (req, res) => {
         const technicians = await User.find({ role: "Technicien" });
         for (const tech of technicians) {
             const notifMessage = `Une nouvelle mission "${mission.titre_mission}" a été créée.`;
-            await createNotification(tech._id, "Nouvelle mission disponible", notifMessage, "Mission", mission._id);
+            await createNotification(tech._id, "Nouvelle mission disponible", notifMessage, "Mission", mission._id, mission.niveau_priorite);
             req.io.to(tech._id.toString()).emit("notification", {
                 title: "Nouvelle mission disponible",
                 message: notifMessage,
@@ -178,7 +178,7 @@ export const updateMission = async (req, res) => {
             const tech = await User.findById(mission.technicien_attribue);
             const notifMessage = `Les détails de la mission "${mission.titre_mission}" ont été modifiés.`;
 
-            await createNotification(tech._id, "Mise à jour de votre mission", notifMessage, "Mission", mission._id);
+            await createNotification(tech._id, "Mise à jour de votre mission", notifMessage, "Mission", mission._id, mission.niveau_priorite );
 
             req.io.to(tech._id.toString()).emit("notification", {
                 title: "Mise à jour de mission",
@@ -239,7 +239,7 @@ export const assignMission = async (req, res) => {
         for (const manager of managers) {
             const notifMessage = `${technicien.firstName} ${technicien.lastName} s’est attribué la mission "${mission.titre_mission}".`;
 
-            await createNotification(manager._id, "Mission attribuée", notifMessage, "Mission", mission._id);
+            await createNotification(manager._id, "Mission attribuée", notifMessage, "Mission", mission._id, "important");
 
             req.io.to(manager._id.toString()).emit("notification", {
                 title: "Mission attribuée",
@@ -301,7 +301,7 @@ export const updateMissionStatus = async (req, res) => {
         const managers = await User.find({ role: "Manager" });
         for (const manager of managers) {
             const notifMessage = `${technicien.firstName} ${technicien.lastName} a changé le statut de "${mission.titre_mission}" à "${statut_mission}".`;
-            await createNotification(manager._id, "Mise à jour de mission", notifMessage, "Mission", mission._id);
+            await createNotification(manager._id, "Mise à jour de mission", notifMessage, "Mission", mission._id, "important");
 
             req.io.to(manager._id.toString()).emit("notification", {
                 title: "Mise à jour de mission",
@@ -361,7 +361,7 @@ export const submitRapport = async (req, res) => {
         const managers = await User.find({ role: "Manager" });
         for (const manager of managers) {
             const notifMessage = `${req.user.firstName} ${req.user.lastName} a soumis le rapport de la mission "${mission.titre_mission}".`;
-            await createNotification(manager._id, "Nouveau rapport soumis", notifMessage, "Rapport", mission._id);
+            await createNotification(manager._id, "Nouveau rapport soumis", notifMessage, "Rapport", mission._id, "important");
 
             req.io.to(manager._id.toString()).emit("notification", {
                 title: "Nouveau rapport soumis",
@@ -420,7 +420,7 @@ export const validateRapport = async (req, res) => {
         const tech = await User.findById(mission.technicien_attribue);
         if (tech) {
             const notifMessage = `Le rapport de votre mission "${mission.titre_mission}" a été validé par le manager.`;
-            await createNotification(tech._id, "Rapport validé", notifMessage, "Rapport", mission._id);
+            await createNotification(tech._id, "Rapport validé", notifMessage, "Rapport", mission._id, "infos");
 
             req.io.to(tech._id.toString()).emit("notification", {
                 title: "Rapport validé",
