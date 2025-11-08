@@ -79,13 +79,13 @@ export const sendMessage = async (req, res) => {
                 const senderName = req.user.firstName || "Un utilisateur";
                 const notifMessage = `Nouveau message de ${senderName} : "${text}"`;
 
-                // Créer la notification en DB
+                // Créer la notification en DB avec type "Message"
                 try {
                     await createNotification(
                         recipient._id,
                         "Nouveau message",
                         notifMessage,
-                        "Message",
+                        "Message",          // ✅ Type Message
                         conversationId
                     );
                     console.log("Notification créée en DB pour:", recipient._id);
@@ -129,6 +129,7 @@ export const sendMessage = async (req, res) => {
         res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
 };
+
 
 
 /**
