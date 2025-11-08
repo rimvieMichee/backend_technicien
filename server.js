@@ -15,6 +15,8 @@ import missionRoutes from "./mission/route/mission.route.js";
 
 // Swagger
 import swaggerDocs from "./swagger.js";
+import chatRoute from "./chat/route/chat.route.js";
+import notificationRoute from "./notification/route/notification.route.js";
 
 dotenv.config(); // Charger les variables d'environnement
 
@@ -51,6 +53,8 @@ app.use(express.json());
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/missions", missionRoutes);
+app.use("/api/chats", chatRoute);
+app.use("/api/notifications", notificationRoute);
 
 // Swagger
 swaggerDocs(app);

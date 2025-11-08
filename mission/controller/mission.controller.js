@@ -5,23 +5,16 @@ import { createNotification } from "../../notification/utils/notify.js";
 import { sendPushNotification } from "../../config/fcm.js";
 import {populate} from "dotenv";
 
-// --------------------
-// 🟢 Créer une mission (Manager)
-// --------------------
+
+// Créer une mission (Manager)
 export const createMission = async (req, res) => {
     try {
         const missionData = req.body;
-
-        // 🔢 Générer un idMission s’il n’existe pas déjà
         if (!missionData.idMission) {
             const count = await Mission.countDocuments();
             missionData.idMission = `M-${String(count + 1).padStart(3, "0")}-2025`;
         }
-
-        // 👤 L’auteur de la mission
         missionData.createdBy = req.user.id;
-
-        // ✅ S'assurer que sla_capture existe toujours
         if (!missionData.sla_capture) {
             missionData.sla_capture = {
                 attribution_date: null,
@@ -31,26 +24,18 @@ export const createMission = async (req, res) => {
                 terminee_date: null,
             };
         }
-
-        // ✅ Initialiser missionsTerminees à false
         missionData.missionsTerminees = false;
-
-        // 💾 Création de la mission
         const mission = await Mission.create(missionData);
-
-        // 🔔 Notifier tous les techniciens
+        //=================== Notifier tous les techniciens
         const technicians = await User.find({ role: "Technicien" });
         for (const tech of technicians) {
             const notifMessage = `Une nouvelle mission "${mission.titre_mission}" a été créée.`;
-
             await createNotification(tech._id, "Nouvelle mission disponible", notifMessage, "Mission", mission._id);
-
             req.io.to(tech._id.toString()).emit("notification", {
                 title: "Nouvelle mission disponible",
                 message: notifMessage,
                 missionId: mission._id.toString(),
             });
-
             if (tech.deviceTokens?.length > 0) {
                 await sendPushNotification(
                     tech.deviceTokens,
@@ -60,7 +45,6 @@ export const createMission = async (req, res) => {
                 );
             }
         }
-
         res.status(201).json({
             message: "Mission créée avec succès",
             mission,
@@ -74,37 +58,24 @@ export const createMission = async (req, res) => {
     }
 };
 
-
-
-// --------------------
 //  Récupérer toutes les missions
-// --------------------
-
-
+// Rimvie, l'importance du populate est à retenir
 export const getAllMissions = async (req, res) => {
     try {
+        // Juste recuperer les missions dont le statut est disponible
         const missions = await Mission.find({statut_mission: "Disponible"})
-            .populate("createdBy", "firstName lastName phone post") //  ici on précise les champs à inclure
-            .populate("technicien_attribue", "firstName lastName phone post"); // (optionnel)
+            .populate("createdBy", "firstName lastName phone post")
+            .populate("technicien_attribue", "firstName lastName phone post");
 
         res.status(200).json(missions);
     } catch (error) {
         res.status(500).json({ message: "Erreur lors de la récupération des missions", error });
     }
 };
-
-
-// --------------------
-// 🟢 Récupérer toutes les missions attribuées à un technicien donné
-// --------------------
-// --------------------
-// 🟢 Récupérer les missions du technicien connecté
-// --------------------
+// Récupérer les missions du technicien connecté
 export const getMissionsByTechnicien = async (req, res) => {
     try {
-        const userId = req.user.id; //  Technicien connecté (via JWT)
-
-        //  Rechercher les missions attribuées à ce technicien
+        const userId = req.user.id;
         const missions = await Mission.find({ technicien_attribue: userId })
             .populate("createdBy", "firstName lastName phone post")
             .populate("technicien_attribue", "firstName lastName phone post")
@@ -125,7 +96,7 @@ export const getMissionsByTechnicien = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ Erreur getMissionsByTechnicien:", error);
+        console.error("Erreur getMissionsByTechnicien:", error);
         res.status(500).json({
             message: "Erreur lors de la récupération des missions du technicien",
             error: error.message,
@@ -133,9 +104,7 @@ export const getMissionsByTechnicien = async (req, res) => {
     }
 };
 
-
-// 🟢 (Manager/Admin) Récupérer les missions d’un technicien donné
-// --------------------
+// (Manager/Admin) Récupérer les missions d’un technicien donné
 export const getMissionsByTechnicienId = async (req, res) => {
     try {
         const { id } = req.params; // ✅ ID du technicien transmis dans l’URL
@@ -172,12 +141,7 @@ export const getMissionsByTechnicienId = async (req, res) => {
     }
 };
 
-
-
-
-// --------------------
 // Récupérer une mission par ID
-// --------------------
 export const getMissionById = async (req, res) => {
     try {
         const mission = await Mission.findById(req.params.id)
@@ -195,10 +159,7 @@ export const getMissionById = async (req, res) => {
     }
 };
 
-
-// --------------------
-// 🟢 Mettre à jour une mission (Manager)
-// --------------------
+// Mettre à jour une mission (Manager)
 export const updateMission = async (req, res) => {
     try {
         const mission = await Mission.findById(req.params.id);
@@ -236,9 +197,7 @@ export const updateMission = async (req, res) => {
     }
 };
 
-// --------------------
 // Supprimer une mission
-// --------------------
 export const deleteMission = async (req, res) => {
     try {
         const mission = await Mission.findByIdAndDelete(req.params.id);
@@ -249,9 +208,7 @@ export const deleteMission = async (req, res) => {
     }
 };
 
-// --------------------
 // Technicien s’attribue une mission
-// --------------------
 export const assignMission = async (req, res) => {
     try {
         const missionId = req.params.id;
@@ -302,10 +259,7 @@ export const assignMission = async (req, res) => {
     }
 };
 
-
-// --------------------
 // Technicien met à jour le statut
-// --------------------
 export const updateMissionStatus = async (req, res) => {
     try {
         const missionId = req.params.id;
@@ -332,21 +286,18 @@ export const updateMissionStatus = async (req, res) => {
                 break;
             case "Terminée":
                 mission.sla_capture.terminee_date = now;
-                mission.missionsTerminees = true; // ✅ Mettre à jour missionsTerminees
+                mission.missionsTerminees = true;
                 break;
             default:
                 return res.status(400).json({ message: "Statut invalide" });
         }
 
-        // Si le statut n'est plus "Terminée", s'assurer que missionsTerminees est false
         if (statut_mission !== "Terminée") {
             mission.missionsTerminees = false;
         }
-
         mission.statut_mission = statut_mission;
         await mission.save();
-
-        // Notifier tous les managers
+        //============== Notifier tous les managers
         const managers = await User.find({ role: "Manager" });
         for (const manager of managers) {
             const notifMessage = `${technicien.firstName} ${technicien.lastName} a changé le statut de "${mission.titre_mission}" à "${statut_mission}".`;
@@ -357,14 +308,12 @@ export const updateMissionStatus = async (req, res) => {
                 message: notifMessage,
                 missionId: mission._id.toString(),
             });
-
             if (manager.deviceTokens?.length > 0) {
                 await sendPushNotification(manager.deviceTokens, "Mise à jour de mission", notifMessage, {
                     missionId: mission._id.toString(),
                 });
             }
         }
-
         res.status(200).json({ message: "Statut mis à jour", mission });
     } catch (error) {
         res.status(500).json({ message: "Erreur lors de la mise à jour du statut", error: error.message });

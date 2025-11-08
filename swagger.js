@@ -11,7 +11,7 @@ const options = {
     },
   servers: [
   { url: 'http://localhost:3000' },
-  // { url: 'https://frais.onrender.com' },
+  // { url: 'https://mistra.onrender.com' },
 ],
     components: {
       securitySchemes: {
@@ -31,10 +31,10 @@ const options = {
 const swaggerSpec = swaggerJSDoc(options);
 
 export default (app) => {
-  // UI Swagger
+  //================= UI Swagger ===============
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-  // Endpoint JSON brut
+  //================= Endpoint JSON brut ==================
   app.get('/api-docs.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(swaggerSpec);

@@ -321,9 +321,6 @@ router.get("/:id", authMiddleware(), getMissionById);
  */
 router.post("/:id/assign", authMiddleware(), assignMission);
 
-
-
-
 /**
  * @swagger
  * /api/missions/{id}/status:

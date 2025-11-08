@@ -4,11 +4,11 @@ import mongoose from "mongoose";
 import User from "../model/User.js";
 import { sendEmail } from "../utils/sendEmail.js";
 
-// --- UTILITAIRES ---
+
 const validateObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 
-// --- SEND OTP ---
+//============== SEND OTP ==================
 export const sendPasswordResetOTP = async (req, res) => {
   try {
     const { email } = req.body;
@@ -31,7 +31,7 @@ export const sendPasswordResetOTP = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// --- RESET PASSWORD WITH OTP ---
+// ========== RESET PASSWORD WITH OTP ============
 export const resetPasswordWithOTP = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
@@ -55,7 +55,7 @@ export const resetPasswordWithOTP = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// --- REGISTER USER ---
+// ============== REGISTER USER ================
 export const registerUser = async (req, res) => {
   const { firstName, lastName, email, password, departement, post, phone, Avatar, role } = req.body;
   try {
@@ -86,7 +86,7 @@ export const registerUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// --- LOGIN USER ---
+// ================== LOGIN USER ====================
 export const loginUser = async (req, res) => {
   const { login, password } = req.body;
   try {
@@ -106,7 +106,7 @@ export const loginUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// --- LOGOUT USER ---
+// =================== LOGOUT USER ==================
 export const logoutUser = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -123,7 +123,7 @@ export const logoutUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// --- REGISTER DEVICE TOKEN ---
+// ================== REGISTER DEVICE TOKEN ===============
 export const registerDeviceToken = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -143,7 +143,7 @@ export const registerDeviceToken = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// --- GET PROFILE ---
+// ==================== GET PROFILE ====================
 export const getProfile = async (req, res) => {
   const { id } = req.params;
   if (!validateObjectId(id)) return res.status(400).json({ message: "ID utilisateur invalide" });
@@ -160,7 +160,7 @@ export const getProfile = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// --- GET USER BY ID ---
+// ==================== GET USER BY ID =================
 export const getUserById = async (req, res) => {
   const { id } = req.params;
   if (!validateObjectId(id)) return res.status(400).json({ message: "ID utilisateur invalide" });
@@ -177,7 +177,7 @@ export const getUserById = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// --- UPDATE USER ---
+// ================ UPDATE USER ==============
 export const updateUser = async (req, res) => {
   const { id } = req.params;
   if (!validateObjectId(id)) return res.status(400).json({ message: "ID utilisateur invalide" });
@@ -194,7 +194,7 @@ export const updateUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// --- DELETE USER ---
+// =================== DELETE USER ===============
 export const deleteUser = async (req, res) => {
   const { id } = req.params;
   if (!validateObjectId(id)) return res.status(400).json({ message: "ID utilisateur invalide" });
@@ -208,7 +208,7 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// --- GET ALL USERS ---
+// ==================== GET ALL USERS ==================
 export const getAllUsers = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
