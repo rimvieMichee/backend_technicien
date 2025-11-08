@@ -85,7 +85,7 @@ export const sendMessage = async (req, res) => {
                         recipient._id,
                         "Nouveau message",
                         notifMessage,
-                        "Chat",
+                        "Message",
                         conversationId
                     );
                     console.log("Notification créée en DB pour:", recipient._id);
