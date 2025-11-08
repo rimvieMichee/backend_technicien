@@ -16,6 +16,7 @@ import notificationRoute from "./notification/route/notification.route.js";
 
 // Swagger
 import swaggerDocs from "./swagger.js";
+import rapportRoute from "./mission/route/rapport.route.js";
 
 
 
@@ -56,6 +57,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/missions", missionRoutes);
 app.use("/api/chat", chatRoute);
 app.use("/api/notifications", notificationRoute);
+app.use("/api/rapports", rapportRoute);
 
 // Swagger
 swaggerDocs(app);

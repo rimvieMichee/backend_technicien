@@ -319,3 +319,125 @@ export const updateMissionStatus = async (req, res) => {
         res.status(500).json({ message: "Erreur lors de la mise à jour du statut", error: error.message });
     }
 };
+
+
+// Technicien crée ou met à jour le rapport
+export const submitRapport = async (req, res) => {
+    try {
+        const missionId = req.params.id;
+        const userId = req.user.id;
+        const {
+            travail_effectue,
+            statut_resolution,
+            prochaine_etape,
+            materiel_utilise,
+            photos,
+            signature_client,
+            notes_additionnelles
+        } = req.body;
+
+        const mission = await Mission.findById(missionId);
+        if (!mission) return res.status(404).json({ message: "Mission non trouvée" });
+
+        // Seul le technicien attribué peut soumettre un rapport
+        if (mission.technicien_attribue?.toString() !== userId)
+            return res.status(403).json({ message: "Non autorisé à soumettre le rapport" });
+
+        // Créer / mettre à jour le rapport
+        mission.rapport_intervention = {
+            travail_effectue,
+            statut_resolution,
+            prochaine_etape,
+            materiel_utilise: materiel_utilise || [],
+            photos: photos || [],
+            signature_client,
+            notes_additionnelles: notes_additionnelles || "",
+            valide: false // par défaut non validé
+        };
+
+        await mission.save();
+
+        // Notifier les managers
+        const managers = await User.find({ role: "Manager" });
+        for (const manager of managers) {
+            const notifMessage = `${req.user.firstName} ${req.user.lastName} a soumis le rapport de la mission "${mission.titre_mission}".`;
+            await createNotification(manager._id, "Nouveau rapport soumis", notifMessage, "Rapport", mission._id);
+
+            req.io.to(manager._id.toString()).emit("notification", {
+                title: "Nouveau rapport soumis",
+                message: notifMessage,
+                missionId: mission._id.toString()
+            });
+
+            if (manager.deviceTokens?.length > 0) {
+                await sendPushNotification(manager.deviceTokens, "Nouveau rapport soumis", notifMessage, { missionId: mission._id.toString() });
+            }
+        }
+
+        res.status(200).json({ message: "Rapport soumis avec succès", rapport: mission.rapport_intervention });
+
+    } catch (error) {
+        console.error("Erreur submitRapport:", error);
+        res.status(500).json({ message: "Erreur lors de la soumission du rapport", error: error.message });
+    }
+};
+
+// Manager consulte le rapport
+export const viewRapport = async (req, res) => {
+    try {
+        const mission = await Mission.findById(req.params.id)
+            .populate("technicien_attribue", "firstName lastName")
+            .populate("createdBy", "firstName lastName");
+
+        if (!mission) return res.status(404).json({ message: "Mission non trouvée" });
+
+        if (!mission.rapport_intervention || Object.keys(mission.rapport_intervention).length === 0) {
+            return res.status(200).json({ message: "Aucun rapport disponible", rapport: null });
+        }
+
+        res.status(200).json({ rapport: mission.rapport_intervention });
+    } catch (error) {
+        console.error("Erreur viewRapport:", error);
+        res.status(500).json({ message: "Erreur lors de la récupération du rapport", error: error.message });
+    }
+};
+
+// Manager valide le rapport
+export const validateRapport = async (req, res) => {
+    try {
+        const mission = await Mission.findById(req.params.id);
+        if (!mission) return res.status(404).json({ message: "Mission non trouvée" });
+
+        if (!mission.rapport_intervention || Object.keys(mission.rapport_intervention).length === 0) {
+            return res.status(400).json({ message: "Aucun rapport à valider" });
+        }
+
+        // Ajouter le champ "valide" dans le rapport
+        mission.rapport_intervention.valide = true;
+        await mission.save();
+
+        // Notifier le technicien
+        const tech = await User.findById(mission.technicien_attribue);
+        if (tech) {
+            const notifMessage = `Le rapport de votre mission "${mission.titre_mission}" a été validé par le manager.`;
+            await createNotification(tech._id, "Rapport validé", notifMessage, "Rapport", mission._id);
+
+            req.io.to(tech._id.toString()).emit("notification", {
+                title: "Rapport validé",
+                message: notifMessage,
+                missionId: mission._id.toString()
+            });
+
+            if (tech.deviceTokens?.length > 0) {
+                await sendPushNotification(tech.deviceTokens, "Rapport validé", notifMessage, { missionId: mission._id.toString() });
+            }
+        }
+
+        res.status(200).json({ message: "Rapport validé avec succès", rapport: mission.rapport_intervention });
+
+    } catch (error) {
+        console.error("Erreur validateRapport:", error);
+        res.status(500).json({ message: "Erreur lors de la validation du rapport", error: error.message });
+    }
+};
+

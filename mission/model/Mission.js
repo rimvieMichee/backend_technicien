@@ -11,12 +11,26 @@ const slaSchema = new mongoose.Schema({
     rapport_soumis_date: { type: Date }
 }, { _id: false });
 
+// --- Rapport Schema ---
 const rapportSchema = new mongoose.Schema({
-    titre: String,
-    description: String,
-    materiel_utilise: [String],
-    resolution: String
-}, { _id: false });
+    travail_effectue: { type: String, required: true },
+    statut_resolution: {
+        type: String,
+        enum: ["resolu", "partiellement resolu", "non resolu", "en attente de pièce"],
+        required: true
+    },
+    prochaine_etape: { type: String, required: true },
+    materiel_utilise: [
+        {
+            nom: { type: String, required: true },
+            quantite: { type: Number, required: true, min: 1 }
+        }
+    ],
+    photos: [String], // URLs ou chemins vers les images
+    signature_client: { type: String, required: true }, // URL/base64
+    notes_additionnelles: { type: String, default: "" },
+    valide: { type: Boolean, default: false } // pour validation par manager
+}, { _id: false }); // _id: false pour ne pas créer un ID séparé pour le sous-document
 
 const missionSchema = new mongoose.Schema({
     idMission: { type: String, unique: true },
