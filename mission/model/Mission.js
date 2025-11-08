@@ -41,7 +41,7 @@ const missionSchema = new mongoose.Schema({
     type_intervention: { type: String, enum: ["Curatif", "Préventif"], required: true },
     type_equipement: { type: String },
     id_equipement: { type: String },
-    niveau_risque: { type: String, enum: ["faible", "moyen", "élevé", "critique"], required: true },
+    niveau_risque: { type: String, enum: ["basse","faible", "moyen", "élevé", "critique"], required: true },
     niveau_priorite: {
         type: String,
         enum: ["Normal", "Urgent", "Critique"],
