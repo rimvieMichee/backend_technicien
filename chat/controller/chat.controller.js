@@ -35,8 +35,9 @@ export const createChat = async (req, res) => {
  */
 export const sendMessage = async (req, res) => {
     try {
-        const { conversationId, text } = req.body;
-        const sender = req.user.id; // ✅ correction ici aussi
+        const { text } = req.body;
+        const { conversationId } = req.params;
+        const sender = req.user.id;
 
         const message = await Message.create({
             conversation: conversationId,
@@ -44,10 +45,8 @@ export const sendMessage = async (req, res) => {
             text,
         });
 
-        // Mettre à jour le dernier message de la conversation
         await Chat.findByIdAndUpdate(conversationId, { lastMessage: message._id });
 
-        // Émettre le message en temps réel via Socket.IO
         req.io.to(conversationId).emit("newMessage", message);
 
         res.status(201).json(message);
@@ -56,6 +55,7 @@ export const sendMessage = async (req, res) => {
         res.status(500).json({ message: "Erreur serveur" });
     }
 };
+
 
 /**
  * Récupérer tous les messages d'une conversation
