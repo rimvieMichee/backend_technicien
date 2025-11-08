@@ -5,6 +5,6 @@ const conversationSchema = new mongoose.Schema({
         { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true } // manager et technicien
     ],
     createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 export default mongoose.model("Conversation", conversationSchema);

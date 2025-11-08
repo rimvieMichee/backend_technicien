@@ -40,18 +40,12 @@ export const sendMessage = async (req, res) => {
         const { text } = req.body;
         const { conversationId } = req.params;
         const senderId = req.user.id;
-
-        // 1️⃣ Créer le message
         const message = await Message.create({
             conversation: conversationId,
             sender: senderId,
             text,
         });
-
-        // 2️⃣ Mettre à jour le dernier message de la conversation
         await Chat.findByIdAndUpdate(conversationId, { lastMessage: message._id });
-
-        // 3️⃣ Émettre le message via Socket.IO à tous les participants
         req.io.to(conversationId).emit("newMessage", message);
 
         // ====== Notification au destinataire ======
@@ -60,31 +54,24 @@ export const sendMessage = async (req, res) => {
             "participants",
             "_id firstName deviceTokens"
         );
-
         if (!chat) {
             console.warn("Conversation non trouvée pour la notification:", conversationId);
         } else {
-            // Destinataire = celui qui n'est pas l'expéditeur
             let recipient = chat.participants.find(
                 p => p._id.toString() !== senderId.toString()
             );
-
-            // Si recipient n'est pas trouvé, récupérer directement depuis DB
             if (!recipient) {
                 const recipientId = chat.participants.find(
                     p => p.toString() !== senderId.toString()
                 );
                 if (recipientId) recipient = await User.findById(recipientId);
             }
-
             if (!recipient) {
                 console.warn("Destinataire introuvable pour la notification, conversationId:", conversationId);
             } else {
                 const senderUser = await User.findById(senderId); // Récupérer infos de l'expéditeur
                 const senderName = senderUser?.firstName || "Un utilisateur";
                 const notifMessage = `Nouveau message de ${senderName} : "${text}"`;
-
-                // Créer la notification en DB avec type "Message"
                 try {
                     await createNotification(
                         recipient._id,
@@ -98,8 +85,6 @@ export const sendMessage = async (req, res) => {
                 } catch (notifErr) {
                     console.error("Erreur création notification en DB:", notifErr);
                 }
-
-                // Émettre notification en temps réel via Socket.IO
                 try {
                     req.io.to(recipient._id.toString()).emit("notification", {
                         title: "Nouveau message",
@@ -110,8 +95,6 @@ export const sendMessage = async (req, res) => {
                 } catch (socketErr) {
                     console.error("Erreur envoi notification Socket.IO:", socketErr);
                 }
-
-                // Push notification si deviceTokens définis
                 if (recipient.deviceTokens?.length > 0) {
                     try {
                         await sendPushNotification(
@@ -158,14 +141,16 @@ export const getMessages = async (req, res) => {
  */
 export const getChats = async (req, res) => {
     try {
-        const userId = req.user.id; // ✅ correction ici aussi
+        const userId = req.user.id;
 
-        const chats = await Chat.find({ participants: userId })
+        // Vérifie que le userId est bien passé
+        console.log("User connecté:", userId);
+
+        const conversations = await Conversation.find({ participants: userId })
             .populate("participants", "firstName lastName email role")
-            .populate("lastMessage")
-            .sort({ updatedAt: -1 });
+            .sort({ updatedAt: -1 }); // ça marchera seulement si tu actives timestamps
 
-        res.status(200).json(chats);
+        res.status(200).json(conversations);
     } catch (err) {
         console.error("Erreur getChats:", err);
         res.status(500).json({ message: "Erreur serveur" });
