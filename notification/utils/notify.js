@@ -8,7 +8,7 @@ import Notification from "../model/Notification.js";
  * @param {String} [type] - Type de notification (Mission, System, etc.)
  * @param {ObjectId} [relatedId] - ID lié à la notification (ex: mission)
  */
-export async function createNotification(recipient, title, message, type = "Mission", relatedId = null) {
+export async function createNotification(recipient, title, message, type = "Message", relatedId = null) {
     try {
         const notification = await Notification.create({
             recipient,
