@@ -55,14 +55,14 @@ export const sendMessage = async (req, res) => {
         // Émettre via Socket.IO
         if (req.io) req.io.to(conversationId).emit("newMessage", message);
 
-        // Notifications pour le destinataire
+
         const conversation = await Conversation.findById(conversationId).populate(
             "participants",
             "_id firstName deviceTokens"
         );
 
         if (conversation) {
-            // Destinataire = celui qui n'a pas envoyé le message
+
             const recipient = conversation.participants.find(
                 (p) => p._id.toString() !== senderId.toString()
             );
@@ -71,7 +71,7 @@ export const sendMessage = async (req, res) => {
                 const senderName = message.sender.firstName || "Un utilisateur";
                 const notifMessage = `Nouveau message de ${senderName} : "${text}"`;
 
-                // DB notification
+
                 try {
                     await createNotification(
                         recipient._id,
