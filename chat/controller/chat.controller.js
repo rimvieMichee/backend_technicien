@@ -1,4 +1,4 @@
-import Chat from "../model/Chat.js";
+import Conversation from "../../chat/model/Chat.js";
 import Message from "../model/Message.js";
 import User from "../../auth/model/User.js";
 import {createNotification} from "../../notification/utils/notify.js";
@@ -148,7 +148,7 @@ export const getChats = async (req, res) => {
 
         const conversations = await Conversation.find({ participants: userId })
             .populate("participants", "firstName lastName email role")
-            .sort({ updatedAt: -1 }); // ça marchera seulement si tu actives timestamps
+            .sort({ updatedAt: -1 });
 
         res.status(200).json(conversations);
     } catch (err) {
