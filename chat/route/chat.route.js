@@ -5,6 +5,8 @@ import {
     sendMessage,
     getMessages,
     getChats,
+    editMessage,
+    deleteMessage
 } from "../controller/chat.controller.js";
 
 const router = express.Router();
@@ -155,6 +157,83 @@ router.get("/", authMiddleware(), getChats);
  *         description: Erreur serveur
  */
 router.post("/:conversationId", authMiddleware(), sendMessage);
+
+
+/**
+ * @swagger
+ * /api/chat/message/{messageId}:
+ *   put:
+ *     summary: Modifier un message (uniquement par son auteur)
+ *     tags:
+ *       - Chat
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID du message à modifier
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - text
+ *             properties:
+ *               text:
+ *                 type: string
+ *                 example: "Message mis à jour"
+ *     responses:
+ *       200:
+ *         description: Message modifié avec succès
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Message'
+ *       403:
+ *         description: Accès refusé (non auteur du message)
+ *       404:
+ *         description: Message introuvable
+ *       500:
+ *         description: Erreur serveur
+ */
+router.put("/message/:messageId", authMiddleware(), editMessage);
+
+
+
+/**
+ * @swagger
+ * /api/chat/message/{messageId}:
+ *   delete:
+ *     summary: Supprimer un message (uniquement par son auteur)
+ *     tags:
+ *       - Chat
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID du message à supprimer
+ *     responses:
+ *       200:
+ *         description: Message supprimé avec succès
+ *       403:
+ *         description: Accès refusé (non auteur du message)
+ *       404:
+ *         description: Message introuvable
+ *       500:
+ *         description: Erreur serveur
+ */
+router.delete("/message/:messageId", authMiddleware(), deleteMessage);
+
+
 
 /**
  * @swagger

@@ -144,11 +144,13 @@ export const getChats = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        console.log("User connecté:", userId);
-
         const conversations = await Conversation.find({ participants: userId })
             .populate("participants", "firstName lastName email role")
-            .sort({ updatedAt: -1 }); // timestamps doivent être activés
+            .populate({
+                path: "lastMessage",
+                populate: { path: "sender", select: "firstName lastName" },
+            })
+            .sort({ updatedAt: -1 });
 
         res.status(200).json(conversations);
     } catch (err) {
@@ -156,3 +158,92 @@ export const getChats = async (req, res) => {
         res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
 };
+
+
+/**
+ * Editer un message (uniquement par son auteur)
+ */
+
+export const editMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const { text } = req.body;
+        const userId = req.user.id;
+
+        // Vérifie que le message existe
+        const message = await Message.findById(messageId);
+        if (!message) {
+            return res.status(404).json({ message: "Message introuvable" });
+        }
+
+        // Vérifie que l'utilisateur est bien l'auteur du message
+        if (message.sender.toString() !== userId.toString()) {
+            return res.status(403).json({ message: "Vous ne pouvez modifier que vos propres messages" });
+        }
+
+        // Met à jour le texte
+        message.text = text;
+        message.edited = true;
+        await message.save();
+
+        // Émettre la mise à jour en temps réel (Socket.IO)
+        if (req.io) {
+            req.io.to(message.conversation.toString()).emit("messageEdited", message);
+        }
+
+        res.status(200).json(message);
+    } catch (err) {
+        console.error("Erreur editMessage:", err);
+        res.status(500).json({ message: "Erreur serveur", error: err.message });
+    }
+};
+
+
+/**
+ * Supprimer un message (uniquement par son auteur)
+ */
+export const deleteMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const userId = req.user.id;
+
+        // Vérifie si le message existe
+        const message = await Message.findById(messageId);
+        if (!message) {
+            return res.status(404).json({ message: "Message introuvable" });
+        }
+
+        // Vérifie que l'utilisateur est bien le créateur du message
+        if (message.sender.toString() !== userId.toString()) {
+            return res.status(403).json({ message: "Vous ne pouvez supprimer que vos propres messages." });
+        }
+
+        // Supprime le message
+        await message.deleteOne();
+
+        // Optionnel : si ce message était le "lastMessage" d’une conversation,
+        // on peut le remplacer par le précédent
+        const conversation = await Conversation.findById(message.conversation);
+        if (conversation?.lastMessage?.toString() === message._id.toString()) {
+            const lastMsg = await Message.findOne({ conversation: conversation._id })
+                .sort({ createdAt: -1 }); // dernier message restant
+            conversation.lastMessage = lastMsg ? lastMsg._id : null;
+            await conversation.save();
+        }
+
+        // Émettre un événement Socket.IO
+        if (req.io) {
+            req.io.to(message.conversation.toString()).emit("messageDeleted", {
+                messageId: message._id,
+                conversationId: message.conversation,
+            });
+        }
+
+        res.status(200).json({ message: "Message supprimé avec succès." });
+    } catch (err) {
+        console.error("Erreur deleteMessage:", err);
+        res.status(500).json({ message: "Erreur serveur", error: err.message });
+    }
+};
+
+
