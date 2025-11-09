@@ -49,6 +49,9 @@ export const sendMessage = async (req, res) => {
         // Optionnel : mettre à jour la conversation avec le dernier message
         await Conversation.findByIdAndUpdate(conversationId, { lastMessage: message._id });
 
+        // Popule le sender pour envoyer toutes les infos nécessaires
+        await message.populate("sender", "firstName lastName avatar");
+
         // Émettre via Socket.IO
         if (req.io) req.io.to(conversationId).emit("newMessage", message);
 
@@ -60,13 +63,12 @@ export const sendMessage = async (req, res) => {
 
         if (conversation) {
             // Destinataire = celui qui n'a pas envoyé le message
-            let recipient = conversation.participants.find(
+            const recipient = conversation.participants.find(
                 (p) => p._id.toString() !== senderId.toString()
             );
 
             if (recipient) {
-                const senderUser = await User.findById(senderId);
-                const senderName = senderUser?.firstName || "Un utilisateur";
+                const senderName = message.sender.firstName || "Un utilisateur";
                 const notifMessage = `Nouveau message de ${senderName} : "${text}"`;
 
                 // DB notification
@@ -112,12 +114,14 @@ export const sendMessage = async (req, res) => {
             }
         }
 
+        // Renvoie le message avec le sender peuplé
         res.status(201).json(message);
     } catch (err) {
         console.error("Erreur sendMessage:", err);
         res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
 };
+
 
 /**
  * Récupérer tous les messages d'une conversation
@@ -170,23 +174,17 @@ export const editMessage = async (req, res) => {
         const { text } = req.body;
         const userId = req.user.id;
 
-        // Vérifie que le message existe
         const message = await Message.findById(messageId);
         if (!message) {
             return res.status(404).json({ message: "Message introuvable" });
         }
-
-        // Vérifie que l'utilisateur est bien l'auteur du message
         if (message.sender.toString() !== userId.toString()) {
             return res.status(403).json({ message: "Vous ne pouvez modifier que vos propres messages" });
         }
-
-        // Met à jour le texte
         message.text = text;
         message.edited = true;
         await message.save();
 
-        // Émettre la mise à jour en temps réel (Socket.IO)
         if (req.io) {
             req.io.to(message.conversation.toString()).emit("messageEdited", message);
         }
@@ -206,39 +204,27 @@ export const deleteMessage = async (req, res) => {
     try {
         const { messageId } = req.params;
         const userId = req.user.id;
-
-        // Vérifie si le message existe
         const message = await Message.findById(messageId);
         if (!message) {
             return res.status(404).json({ message: "Message introuvable" });
         }
-
-        // Vérifie que l'utilisateur est bien le créateur du message
         if (message.sender.toString() !== userId.toString()) {
             return res.status(403).json({ message: "Vous ne pouvez supprimer que vos propres messages." });
         }
-
-        // Supprime le message
         await message.deleteOne();
-
-        // Optionnel : si ce message était le "lastMessage" d’une conversation,
-        // on peut le remplacer par le précédent
         const conversation = await Conversation.findById(message.conversation);
         if (conversation?.lastMessage?.toString() === message._id.toString()) {
             const lastMsg = await Message.findOne({ conversation: conversation._id })
-                .sort({ createdAt: -1 }); // dernier message restant
+                .sort({ createdAt: -1 });
             conversation.lastMessage = lastMsg ? lastMsg._id : null;
             await conversation.save();
         }
-
-        // Émettre un événement Socket.IO
         if (req.io) {
             req.io.to(message.conversation.toString()).emit("messageDeleted", {
                 messageId: message._id,
                 conversationId: message.conversation,
             });
         }
-
         res.status(200).json({ message: "Message supprimé avec succès." });
     } catch (err) {
         console.error("Erreur deleteMessage:", err);
