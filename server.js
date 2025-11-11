@@ -5,112 +5,170 @@ import http from "http";
 import { Server } from "socket.io";
 import connectDB from "./config/db.js";
 
-
-
+// 🔥 Import des modèles pour Socket.IO
+import Message from "./chat/model/Message.js";
+import Chat from "./chat/model/Chat.js";
 
 // Routes
 import userRoutes from "./auth/route/user.route.js";
 import missionRoutes from "./mission/route/mission.route.js";
 import chatRoute from "./chat/route/chat.route.js";
 import notificationRoute from "./notification/route/notification.route.js";
+import rapportRoute from "./mission/route/rapport.route.js";
 
 // Swagger
 import swaggerDocs from "./swagger.js";
-import rapportRoute from "./mission/route/rapport.route.js";
 
+dotenv.config();
 
-
-dotenv.config(); // Charger les variables d'environnement
-
-// Vérification des variables d'environnement (debug)
+// --- Vérification MongoDB ---
 if (!process.env.MONGO_URI) {
-  console.error("MONGO_URI non défini dans les variables d'environnement");
+  console.error("MONGO_URI non défini dans .env");
   process.exit(1);
 }
-
-// Connexion à MongoDB
 connectDB();
 
 const app = express();
 const server = http.createServer(app);
 
-// Configuration Socket.IO
+// --- ⚡ Configuration Socket.IO ---
 const io = new Server(server, {
   cors: {
-    origin: "*", // ou mettre ton front-end
-    methods: ["GET", "POST"]
-  }
+    origin: "*", // à restreindre en prod
+    methods: ["GET", "POST"],
+  },
 });
 
-// Middleware pour rendre io accessible dans les controllers
+// --- Middleware global pour injecter io dans req ---
 app.use((req, res, next) => {
   req.io = io;
   next();
 });
 
-// Middlewares
+// --- Middlewares Express ---
 app.use(cors());
 app.use(express.json());
 
-// Routes
+// --- Routes API ---
 app.use("/api/users", userRoutes);
 app.use("/api/missions", missionRoutes);
 app.use("/api/chat", chatRoute);
 app.use("/api/notifications", notificationRoute);
 app.use("/api/rapports", rapportRoute);
 
-// Swagger
+// --- Swagger Docs ---
 swaggerDocs(app);
 
-// Route test simple
+// --- Route test ---
 app.get("/", (req, res) => {
-  res.send("Serveur Node.js + MongoDB fonctionne !");
+  res.send(" Serveur Node.js + MongoDB fonctionne !");
 });
 
-// Socket.IO : gestion des connexions
+// --- Gestion Socket.IO ---
+const connectedUsers = new Map(); // userId -> socket.id
+
 io.on("connection", (socket) => {
-  console.log("Utilisateur connecté, socket id:", socket.id);
+  console.log("Socket connecté:", socket.id);
 
-  // Rejoindre la room de l'utilisateur (utiliser _id MongoDB)
-  socket.on("join", (userId) => {
-    socket.join(userId);
-    console.log(`Utilisateur ${userId} rejoint sa room`);
+  /**
+   * 1️Authentification socket : on mappe userId <-> socket.id
+   */
+  socket.on("authenticate", (userId) => {
+    connectedUsers.set(userId, socket.id);
+    socket.userId = userId;
+    console.log(`Utilisateur ${userId} connecté à Socket.IO`);
   });
 
-  socket.on("disconnect", () => {
-    console.log("Utilisateur déconnecté, socket id:", socket.id);
-  });
-
-  // Rejoindre une room de conversation
+  /**
+   * 2️⃣ Rejoindre une conversation (room)
+   */
   socket.on("joinConversation", (conversationId) => {
     socket.join(conversationId);
-    console.log(`Socket ${socket.id} rejoint la conversation ${conversationId}`);
+    console.log(`Socket ${socket.id} a rejoint la room ${conversationId}`);
   });
 
-  // Écoute des messages envoyés
-  socket.on("sendMessage", async (data) => {
-    const { conversationId, text, senderId } = data;
+  /**
+   * 3️⃣ Envoi d’un message
+   */
+  socket.on("sendMessage", async ({ conversationId, senderId, text }) => {
+    try {
+      // Création du message
+      const message = await Message.create({
+        conversation: conversationId,
+        sender: senderId,
+        text,
+      });
 
-    const message = await Message.create({
-      conversation: conversationId,
-      sender: senderId,
-      text,
-    });
+      // Récupération de la conversation
+      const conversation = await Chat.findById(conversationId);
 
-    // Mettre à jour dernier message dans Chat
-    await Chat.findByIdAndUpdate(conversationId, { lastMessage: message._id });
+      // Mise à jour du dernier message
+      conversation.lastMessage = message._id;
 
-    // Émettre le message à tous les participants
-    io.to(conversationId).emit("newMessage", message);
+      // Gestion des "unreadCounts"
+      if (!conversation.unreadCounts) conversation.unreadCounts = new Map();
+
+      conversation.participants.forEach((pId) => {
+        if (pId.toString() !== senderId.toString()) {
+          const current = conversation.unreadCounts.get(pId.toString()) || 0;
+          conversation.unreadCounts.set(pId.toString(), current + 1);
+        }
+      });
+
+      await conversation.save();
+      await message.populate("sender", "firstName lastName avatar");
+
+      // Émettre le message en temps réel dans la conversation
+      io.to(conversationId).emit("newMessage", message);
+
+      // Mettre à jour le compteur de non lus pour les autres utilisateurs
+      conversation.participants.forEach((pId) => {
+        const targetSocket = connectedUsers.get(pId.toString());
+        if (targetSocket && pId.toString() !== senderId.toString()) {
+          io.to(targetSocket).emit("unreadCountUpdated", {
+            conversationId,
+            unreadCount: conversation.unreadCounts.get(pId.toString()) || 0,
+          });
+        }
+      });
+
+    } catch (err) {
+      console.error("❌ Erreur Socket.IO sendMessage:", err);
+    }
   });
 
+  /**
+   * Marquer une conversation comme lue
+   */
+  socket.on("markAsRead", async ({ conversationId, userId }) => {
+    try {
+      const conversation = await Chat.findById(conversationId);
+      if (!conversation) return;
+
+
+      conversation.unreadCounts.set(userId, 0);
+      await conversation.save();
+
+      io.to(conversationId).emit("unreadCountUpdated", {
+        conversationId,
+        unreadCount: 0,
+      });
+    } catch (err) {
+      console.error("Erreur Socket.IO markAsRead:", err);
+    }
+  });
+
+
+  socket.on("disconnect", () => {
+    if (socket.userId) connectedUsers.delete(socket.userId);
+    console.log(`Socket ${socket.id} déconnecté`);
+  });
 });
 
-// Lancement du serveur
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Serveur en cours sur http://localhost:${PORT}`);
 });
 
-// Export io si besoin ailleurs
+
 export { io };

@@ -1,4 +1,4 @@
-import Conversation from "../../chat/model/Chat.js"; // ton modèle Conversation
+import Conversation from "../../chat/model/Chat.js";
 import Message from "../model/Message.js";
 import User from "../../auth/model/User.js";
 import { createNotification } from "../../notification/utils/notify.js";
@@ -12,7 +12,6 @@ export const createChat = async (req, res) => {
         const { participantId } = req.body;
         const userId = req.user.id;
 
-        // Vérifie si la conversation existe déjà
         let conversation = await Conversation.findOne({
             participants: { $all: [userId, participantId] },
         });
@@ -20,6 +19,10 @@ export const createChat = async (req, res) => {
         if (!conversation) {
             conversation = await Conversation.create({
                 participants: [userId, participantId],
+                unreadCounts: {
+                    [userId]: 0,
+                    [participantId]: 0,
+                },
             });
         }
 
@@ -39,38 +42,50 @@ export const sendMessage = async (req, res) => {
         const { conversationId } = req.params;
         const senderId = req.user.id;
 
-        // Crée le message
         const message = await Message.create({
             conversation: conversationId,
             sender: senderId,
             text,
         });
 
-        // Optionnel : mettre à jour la conversation avec le dernier message
-        await Conversation.findByIdAndUpdate(conversationId, { lastMessage: message._id });
+        let conversation = await Conversation.findById(conversationId);
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation introuvable" });
+        }
 
-        // Popule le sender pour envoyer toutes les infos nécessaires
+        // ✅ Met à jour le dernier message
+        conversation.lastMessage = message._id;
+
+        // ✅ Incrémente les non lus pour les autres participants
+        conversation.participants.forEach((userId) => {
+            const id = userId.toString();
+            if (id !== senderId.toString()) {
+                const current = conversation.unreadCounts.get(id) || 0;
+                conversation.unreadCounts.set(id, current + 1);
+            }
+        });
+
+        await conversation.save();
+
         await message.populate("sender", "firstName lastName avatar");
 
-        // Émettre via Socket.IO
+        // 🔔 Envoi socket du nouveau message
         if (req.io) req.io.to(conversationId).emit("newMessage", message);
 
-
-        const conversation = await Conversation.findById(conversationId).populate(
+        // 🔔 Notification / Push
+        const fullConversation = await Conversation.findById(conversationId).populate(
             "participants",
-            "_id firstName deviceTokens"
+            "_id firstName lastName deviceTokens"
         );
 
-        if (conversation) {
-
-            const recipient = conversation.participants.find(
+        if (fullConversation) {
+            const recipient = fullConversation.participants.find(
                 (p) => p._id.toString() !== senderId.toString()
             );
 
             if (recipient) {
                 const senderName = message.sender.firstName || "Un utilisateur";
                 const notifMessage = `Nouveau message de ${senderName} : "${text}"`;
-
 
                 try {
                     await createNotification(
@@ -85,7 +100,7 @@ export const sendMessage = async (req, res) => {
                     console.error("Erreur création notification DB:", err);
                 }
 
-                // Socket.IO
+                // Socket notification
                 try {
                     if (req.io) {
                         req.io.to(recipient._id.toString()).emit("notification", {
@@ -114,7 +129,6 @@ export const sendMessage = async (req, res) => {
             }
         }
 
-        // Renvoie le message avec le sender peuplé
         res.status(201).json(message);
     } catch (err) {
         console.error("Erreur sendMessage:", err);
@@ -122,6 +136,35 @@ export const sendMessage = async (req, res) => {
     }
 };
 
+/**
+ * ✅ Marquer les messages comme lus (quand un utilisateur ouvre la conversation)
+ */
+export const markAsRead = async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const userId = req.user.id;
+
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) {
+            return res.status(404).json({ message: "Conversation introuvable" });
+        }
+
+        conversation.unreadCounts.set(userId.toString(), 0);
+        await conversation.save();
+
+        if (req.io) {
+            req.io.to(conversationId).emit("messagesRead", {
+                conversationId,
+                userId,
+            });
+        }
+
+        res.json({ success: true, message: "Messages marqués comme lus." });
+    } catch (err) {
+        console.error("Erreur markAsRead:", err);
+        res.status(500).json({ message: "Erreur serveur", error: err.message });
+    }
+};
 
 /**
  * Récupérer tous les messages d'une conversation
@@ -131,7 +174,7 @@ export const getMessages = async (req, res) => {
         const { conversationId } = req.params;
 
         const messages = await Message.find({ conversation: conversationId })
-            .populate("sender", "firstName lastName email")
+            .populate("sender", "firstName lastName email avatar")
             .sort({ createdAt: 1 });
 
         res.status(200).json(messages);
@@ -149,25 +192,30 @@ export const getChats = async (req, res) => {
         const userId = req.user.id;
 
         const conversations = await Conversation.find({ participants: userId })
-            .populate("participants", "firstName lastName email role")
+            .populate("participants", "firstName lastName email role avatar")
             .populate({
                 path: "lastMessage",
                 populate: { path: "sender", select: "firstName lastName" },
             })
-            .sort({ updatedAt: -1 });
+            .sort({ updatedAt: -1 })
+            .lean();
 
-        res.status(200).json(conversations);
+        // ✅ Ajoute le compteur non lu spécifique à cet utilisateur
+        const formatted = conversations.map((conv) => ({
+            ...conv,
+            unreadCount: conv.unreadCounts?.[userId] || 0,
+        }));
+
+        res.status(200).json(formatted);
     } catch (err) {
         console.error("Erreur getChats:", err);
         res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
 };
 
-
 /**
  * Editer un message (uniquement par son auteur)
  */
-
 export const editMessage = async (req, res) => {
     try {
         const { messageId } = req.params;
@@ -175,12 +223,10 @@ export const editMessage = async (req, res) => {
         const userId = req.user.id;
 
         const message = await Message.findById(messageId);
-        if (!message) {
-            return res.status(404).json({ message: "Message introuvable" });
-        }
-        if (message.sender.toString() !== userId.toString()) {
-            return res.status(403).json({ message: "Vous ne pouvez modifier que vos propres messages" });
-        }
+        if (!message) return res.status(404).json({ message: "Message introuvable" });
+        if (message.sender.toString() !== userId.toString())
+            return res.status(403).json({ message: "Non autorisé" });
+
         message.text = text;
         message.edited = true;
         await message.save();
@@ -196,7 +242,6 @@ export const editMessage = async (req, res) => {
     }
 };
 
-
 /**
  * Supprimer un message (uniquement par son auteur)
  */
@@ -205,31 +250,31 @@ export const deleteMessage = async (req, res) => {
         const { messageId } = req.params;
         const userId = req.user.id;
         const message = await Message.findById(messageId);
-        if (!message) {
-            return res.status(404).json({ message: "Message introuvable" });
-        }
-        if (message.sender.toString() !== userId.toString()) {
-            return res.status(403).json({ message: "Vous ne pouvez supprimer que vos propres messages." });
-        }
+        if (!message) return res.status(404).json({ message: "Message introuvable" });
+        if (message.sender.toString() !== userId.toString())
+            return res.status(403).json({ message: "Non autorisé" });
+
         await message.deleteOne();
+
         const conversation = await Conversation.findById(message.conversation);
         if (conversation?.lastMessage?.toString() === message._id.toString()) {
-            const lastMsg = await Message.findOne({ conversation: conversation._id })
-                .sort({ createdAt: -1 });
+            const lastMsg = await Message.findOne({ conversation: conversation._id }).sort({
+                createdAt: -1,
+            });
             conversation.lastMessage = lastMsg ? lastMsg._id : null;
             await conversation.save();
         }
+
         if (req.io) {
             req.io.to(message.conversation.toString()).emit("messageDeleted", {
                 messageId: message._id,
                 conversationId: message.conversation,
             });
         }
+
         res.status(200).json({ message: "Message supprimé avec succès." });
     } catch (err) {
         console.error("Erreur deleteMessage:", err);
         res.status(500).json({ message: "Erreur serveur", error: err.message });
     }
 };
-
-

@@ -6,7 +6,8 @@ import {
     getMessages,
     getChats,
     editMessage,
-    deleteMessage
+    deleteMessage,
+    markAsRead
 } from "../controller/chat.controller.js";
 
 const router = express.Router();
@@ -117,6 +118,35 @@ router.post("/", authMiddleware(), createChat);
  *         description: Erreur serveur
  */
 router.get("/", authMiddleware(), getChats);
+
+
+
+/**
+ * @swagger
+ * /api/chat/{conversationId}/read:
+ *   put:
+ *     summary: Marquer tous les messages d'une conversation comme lus
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID de la conversation
+ *     responses:
+ *       200:
+ *         description: Messages marqués comme lus
+ *       404:
+ *         description: Conversation introuvable
+ *       500:
+ *         description: Erreur serveur
+ */
+router.put("/:conversationId/read", authMiddleware(), markAsRead);
+
+/**
 
 /**
  * @swagger
