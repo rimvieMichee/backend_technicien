@@ -79,6 +79,7 @@ io.on("connection", (socket) => {
     console.log(`Utilisateur ${userId} connecté à Socket.IO`);
   });
 
+
   /**
    * 2️⃣ Rejoindre une conversation (room)
    */

@@ -38,7 +38,7 @@ const missionSchema = new mongoose.Schema({
     adresse: { type: String, required: true },
     lieu: { type: String },
     titre_mission: { type: String },
-        type_intervention: { type: String, enum: ["Curatif", "Préventif"], required: true },
+    type_intervention: { type: String, enum: ["Curatif", "Préventif"], required: true },
     type_equipement: { type: String },
     id_equipement: { type: String },
     niveau_risque: { type: String, enum: ["basse","faible", "moyen", "élevé", "critique"], required: true },
